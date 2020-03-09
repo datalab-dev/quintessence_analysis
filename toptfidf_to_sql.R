@@ -53,7 +53,8 @@ findMostFreqDocs <- function(x, n) {
 # Return the position of the first occurence of a term given a vector of words
 # If the term is not found return -1
 get_firstpos <- function(words, term) {
-    pos <- match(1, str_detect(words, term))
+    pattern <- sprintf(" %s ", term)
+    pos <- match(1, str_detect(words, fixed(pattern)))
 
     if (is.na(pos))
         pos <- -1
