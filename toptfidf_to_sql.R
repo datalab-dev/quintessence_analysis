@@ -107,5 +107,5 @@ df <- as.data.frame(do.call(rbind, res))
 colnames(df) <- c("word", "positions")
 
 log("writing to db")
-dbWriteTable(con, "top_tfidf", df, overwrite = TRUE, append = FALSE,
+dbWriteTable(con_models, "top_tfidf", df, overwrite = TRUE, append = FALSE,
              row.names = FALSE)
