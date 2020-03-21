@@ -65,6 +65,8 @@ def intersection_align_gensim(m1,m2, words=None):
     common_vocab = list(common_vocab)
     common_vocab.sort(key=lambda w: m1.wv.vocab[w].count + m2.wv.vocab[w].count,reverse=True)
 
+    print("common vocab: " + str(len(common_vocab)))
+
     # Then for each model...
     for m in [m1,m2]:
         # Replace old syn0norm array with new one (with common vocab)
@@ -102,6 +104,8 @@ for model_dir in dirs:
     for f in files:
         if f[-6:] == ".model":
             fnames.append(f)
+    if 'decades' in model_dir:
+         fnames = fnames[:0:-1]
 
     worddists = {}
     ts = model_dir + "results/alignment.txt"
