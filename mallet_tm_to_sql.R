@@ -107,10 +107,21 @@ topic_terms_pca$x <- ldavis$mdsDat$x
 topic_terms_pca$y <- ldavis$mdsDat$y
 topic_terms_pca$topics <- ldavis$mdsDat$topics
 topic_terms_pca$top_authors <- get_top_fields("Authors", "Author")
+print("finished authors")
 topic_terms_pca$top_locations <- get_top_fields("Metadata", "Location")
+print("finished locations")
 topic_terms_pca$top_keywords <- get_top_fields("Keywords", "Keyword")
+print("finished keywords")
 topic_terms_pca$top_publishers <- get_top_fields("Metadata", "Publisher")
+print("finished publishers")
 topic_terms_pca <- data.frame(topic_terms_pca)
+
+# Construct topic proportions table
+topic_proportions <- list()
+topic_proportions$topic <- paste0("V", 1:ntopics)
+topic_freq <- colSums(doc_topics)
+topic_proportions$proportion <- topic_freq / sum(topic_freq)
+topic_proportions <- as.data.frame(topic_proportions)
 
 # Write tables to db
 dbWriteTable(modelscon, "topic_terms", topic_terms, overwrite = TRUE,
@@ -122,3 +133,6 @@ print("wrote doc topics")
 dbWriteTable(modelscon, "topic_terms_pca", topic_terms_pca, overwrite = TRUE,
              append = FALSE, row.names = FALSE)
 print("wrote topic terms pca")
+dbWriteTable(modelscon, "topic_proportions", topic_proportions, overwrite = TRUE,
+             append = FALSE, row.names = FALSE)
+print("wrote topic proportions")
