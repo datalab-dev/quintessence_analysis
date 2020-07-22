@@ -1,9 +1,9 @@
 library(mongolite)
 library(jsonlite)
 
-MONGO_URL <- "mongodb://localhost:27017"
-META_PATH <- "../tmp/eebo_phase1_2_meta.csv"
-QID_PATH <- "../tmp/qid.rds"
+mongo_url <- "mongodb://localhost:27017"
+meta_path <- "../tmp/eebo_phase1_2_meta.csv"
+qid_path <- "../tmp/qid.rds"
 
 
 is.digit <- function(x) {
@@ -12,7 +12,7 @@ is.digit <- function(x) {
 
 
 # read in metadata csv
-meta <- read.csv(META_PATH, row.names = NULL, stringsAsFactors = FALSE)
+meta <- read.csv(meta_path, row.names = NULL, stringsAsFactors = FALSE)
 
 # add decade column
 dates <- meta$Date
@@ -30,20 +30,24 @@ meta$Date <- as.integer(meta$Date)
 meta$Decade <- as.integer(unlist(decades))
 
 # add id column
-qid <- as.data.frame(readRDS(QID_PATH))
+qid <- as.data.frame(readRDS(qid_path))
 meta <- meta[match(qid$File_ID, meta$File_ID),]
 meta$QID <- qid$QID
 
 # metadata
-m <- mongo("docs.metadata", url = MONGO_URL)
-df <- meta[c("QID", "Title", "Author", "Location", "Publisher", "Date", "Decade", "Word_Count", "Keywords", "Language")]
-colnames(df) <- c("_id", "title", "author", "location", "publisher", "date", "decade", "wordCount", "keywords", "language")
+m <- mongo("docs.metadata", url = mongo_url)
+df <- meta[c("QID", "Title", "Author", "Location", "Publisher", "Date", 
+             "Decade", "Word_Count", "Keywords", "Language")]
+colnames(df) <- c("_id", "title", "author", "location", "publisher", "date", 
+                  "decade", "wordCount", "keywords", "language")
 m$remove('{}')
 m$insert(df)
 
 # ref ids
-m <- mongo("docs.refids", url = MONGO_URL)
-df <- meta[c("QID", "File_ID", "STC_ID", "ESTC_ID", "EEBO_Citation", "Proquest_ID", "VID")]
-colnames(df) <- c("_id", "fileId", "stcId", "estcId", "eeboCitation", "proquestId", "vid")
+m <- mongo("docs.refids", url = mongo_url)
+df <- meta[c("QID", "File_ID", "STC_ID", "ESTC_ID", "EEBO_Citation", 
+             "Proquest_ID", "VID")]
+colnames(df) <- c("_id", "fileId", "stcId", "estcId", "eeboCitation", 
+                  "proquestId", "vid")
 m$remove('{}')
 m$insert(df)

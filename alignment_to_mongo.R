@@ -2,19 +2,19 @@ library(mongolite)
 library(jsonlite)
 
 
-PATH <- "../tmp/alignment.txt"
-MONGO_URL <- "mongodb://localhost:27017"
+path <- "../tmp/alignment.txt"
+mongo_url <- "mongodb://localhost:27017"
 
 
 # read the alignments text file
-df <- read.csv(PATH, encoding="UTF-8", sep = " ", header=FALSE,
+df <- read.csv(path, encoding = "UTF-8", sep = " ", header = FALSE,
                stringsAsFactors = FALSE)
 
 # reverse the order of the year columns for graphing
 df <- df[,order(c(1, ncol(df):2))]
 
 # initialize a mongodb connection and remove existing docs in collection
-m <- mongo("timeseries", url = MONGO_URL)
+m <- mongo("terms.timeseries", url = mongo_url)
 m$remove('{}')
 
 # convert dataframe rows to json strings

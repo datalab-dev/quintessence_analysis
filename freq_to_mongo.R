@@ -2,8 +2,8 @@ library(mongolite)
 library(jsonlite)
 
 
-DIR <- "../tmp/2020.03.02"
-MONGO_URL <- "mongodb://localhost:27017"
+dir <- "../tmp/2020.03.02"
+mongo_url <- "mongodb://localhost:27017"
 
 fields <- c("full", "decades", "locations", "authors")
 
@@ -47,7 +47,7 @@ upsert_row <- function(row, field, name) {
 # Given full/decade/author/location insert nearest neighbors into database
 nn_to_mongo <- function(field) {
     # get nn filenames
-    path <- if (field == "full") DIR else sprintf("%s-%s/results", DIR, field)
+    path <- if (field == "full") dir else sprintf("%s-%s/results", dir, field)
     nn_files <- list.files(path, pattern = "*.freq", full.names = TRUE)
     
     # process each row in each file
@@ -64,7 +64,7 @@ nn_to_mongo <- function(field) {
 
 
 # initialize a mongodb connection
-m <- mongo("terms.frequencies", url = MONGO_URL)
+m <- mongo("terms.frequencies", url = mongo_url)
 
 # add to db
 sapply(fields, nn_to_mongo)
