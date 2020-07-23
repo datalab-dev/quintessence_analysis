@@ -29,7 +29,7 @@ upsert_row <- function(row, field, name) {
     key_json <- toJSON(key)
     
     # construct new object
-    upsert_loc <- paste("nearestNeighbors", field, name, sep = ".")
+    upsert_loc <- if (field != "full") paste(field, name, sep = ".") else "full"
     data <- list(`$set` = list())
     data$`$set`[[upsert_loc]] <- list(
         neighbors = unlist(row[seq(2, length(row), 2)]),
