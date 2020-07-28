@@ -32,7 +32,7 @@ upsert_row <- function(row, field, name) {
     if (field == "full")
         name <- NULL
     
-    upsert_loc <- paste(c("frequencies", field, name), collapse = ".")
+    upsert_loc <- paste(c(field, name), collapse = ".")
     data <- list(`$set` = list())
     data$`$set`[[upsert_loc]] <- list(
         freq = unbox(as.numeric(unlist(row[2]))),
