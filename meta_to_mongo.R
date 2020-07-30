@@ -37,17 +37,10 @@ meta$QID <- qid$QID
 # metadata
 m <- mongo("docs.metadata", url = mongo_url)
 df <- meta[c("QID", "Title", "Author", "Location", "Publisher", "Date", 
-             "Decade", "Word_Count", "Keywords", "Language")]
+             "Decade", "Word_Count", "Keywords", "Language", "File_ID", 
+             "STC_ID", "ESTC_ID", "EEBO_Citation", "Proquest_ID", "VID")]
 colnames(df) <- c("_id", "title", "author", "location", "publisher", "date", 
-                  "decade", "wordCount", "keywords", "language")
-m$remove('{}')
-m$insert(df)
-
-# ref ids
-m <- mongo("docs.refids", url = mongo_url)
-df <- meta[c("QID", "File_ID", "STC_ID", "ESTC_ID", "EEBO_Citation", 
-             "Proquest_ID", "VID")]
-colnames(df) <- c("_id", "fileId", "stcId", "estcId", "eeboCitation", 
-                  "proquestId", "vid")
+                  "decade", "wordCount", "keywords", "language", "fileId", 
+                  "stcId", "estcId", "eeboCitation", "proquestId", "vid")
 m$remove('{}')
 m$insert(df)
