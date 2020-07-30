@@ -90,4 +90,4 @@ colnames(df)[1] <- "_id"
 # write to db
 m <- mongo("topics", url = mongo_url)
 m$remove('{}')
-m$insert(df)
+m$insert(df, rownames = FALSE)
