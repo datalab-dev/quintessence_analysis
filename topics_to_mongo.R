@@ -142,10 +142,6 @@ topics$proportion <- topic_freq / sum(topic_freq)
 topic_list <- transpose(topics)
 docs <- sapply(topic_list, toJSON, auto_unbox = TRUE)
 
-
-df <- data.frame(topics)
-colnames(df)[1] <- "_id"
-
 # write to db
 m <- mongo("topics", url = mongo_url)
 m$remove('{}')

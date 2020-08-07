@@ -17,13 +17,15 @@ doc_topics <- t(theta / rowSums(theta)) # normalize
 # create dataframes
 df <- as.data.frame(doc_topics)
 get_id <- function(x) sub("^([^.]*).*", "\\1", basename(x))
-df$File_ID <- sapply(rownames(df), get_id)
+fileids <- sapply(rownames(df), get_id)
+map <- as.data.frame(readRDS(qid_path))
+map <- map[map$File_ID %in% fileids,]
+df <- df[match(fileids, map$QID),]
+df$QID <- map$QID
 
+fileids <- sapply(rownames(df), get_id)
 qid <- as.data.frame(readRDS(qid_path))
-df <- df[match(qid$File_ID, df$File_ID),]
-df$QID <- qid$QID
-df$File_ID <- NULL
-
+match(qid$File_ID, df$File_ID)
 
 # initialize a mongodb connection and remove existing docs in collection
 m <- mongo("docs.topics", url = mongo_url)
