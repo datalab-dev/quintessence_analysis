@@ -20,16 +20,13 @@ get_id <- function(x) sub("^([^.]*).*", "\\1", basename(x))
 fileids <- sapply(rownames(df), get_id)
 map <- as.data.frame(readRDS(qid_path))
 map <- map[map$File_ID %in% fileids,]
-df <- df[match(fileids, map$QID),]
-df$QID <- map$QID
+df$QID <- sapply(fileids, function(x) map[map$File_ID == x,]$QID)
+df$File_ID <- NULL
 
-fileids <- sapply(rownames(df), get_id)
-qid <- as.data.frame(readRDS(qid_path))
-match(qid$File_ID, df$File_ID)
 
 # initialize a mongodb connection and remove existing docs in collection
 m <- mongo("docs.topics", url = mongo_url)
-m$remove('{}')
+m$drop()
 
 
 # convert dataframe rows to json strings
@@ -41,7 +38,7 @@ row_to_json <- function(row) {
         `_id` = unbox(as.numeric(row[[length(row)]])),
         topics = topics
     )
-    toJSON(data, digits = NA)
+    toJSON(data, digits = NA, always_decimal = TRUE)
 }
 docs <- apply(df, 1, row_to_json)
 
