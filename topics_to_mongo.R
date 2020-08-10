@@ -135,7 +135,8 @@ topics$topDocs <- get_top_docs(doc_topics)
 topics$topTerms <- get_top_terms(topic_terms)
 
 # add proportions
-topic_freq <- colSums(doc_topics[,1:ntopics], na.rm = TRUE)
+word_counts <- meta[match(qid$QID, meta$QID),]$Word_Count
+topic_freq <- colSums(doc_topics[,1:ntopics] * word_counts, na.rm = TRUE)
 topics$proportion <- topic_freq / sum(topic_freq)
 
 # json
