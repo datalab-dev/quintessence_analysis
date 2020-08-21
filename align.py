@@ -87,13 +87,11 @@ def intersection_align_gensim(m1,m2, words=None):
 
     return (m1,m2)
 
-t0name = "/dsl/eebo/wordembeddings/2020.03.02/std-full.model"
-dirs = ['/dsl/eebo/wordembeddings/2020.03.02-decades/',
-        '/dsl/eebo/wordembeddings/2020.03.02-authors/',
-        '/dsl/eebo/wordembeddings/2020.03.02-locations/']
-
-t0 = Word2Vec.load(t0name)
-t0.init_sims()
+fullmodel = "/dsl/eebo/wordembeddings/2020.03.02/std-full.model"
+# dirs = ['/dsl/eebo/wordembeddings/2020.03.02-decades/',
+#         '/dsl/eebo/wordembeddings/2020.03.02-authors/',
+#         '/dsl/eebo/wordembeddings/2020.03.02-locations/']
+dirs = ['/dsl/eebo/wordembeddings/2020.03.02-decades/']
 
 for model_dir in dirs:
     print("model directory: " + model_dir)
@@ -104,8 +102,15 @@ for model_dir in dirs:
     for f in files:
         if f[-6:] == ".model":
             fnames.append(f)
+
     if 'decades' in model_dir:
-         fnames = fnames[:0:-1]
+        t0name = model_dir + '170.model'
+        fnames = fnames[:0:-1]
+    else:
+        t0name = fullmodel
+
+    t0 = Word2Vec.load(t0name)
+    t0.init_sims()
 
     worddists = {}
     ts = model_dir + "results/alignment.txt"
