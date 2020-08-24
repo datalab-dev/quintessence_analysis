@@ -1,5 +1,7 @@
 library(mongolite)
 library(jsonlite)
+library(purrr)
+
 
 mongo_url <- "mongodb://localhost:27017"
 meta_path <- "../tmp/eebo_phase1_2_meta.csv"
@@ -11,8 +13,20 @@ is.digit <- function(x) {
 }
 
 
+process_keywords = function(x) {
+    x <- unlist(strsplit(x, "--"))
+    x <- gsub("B.C", "BC", x, fixed=TRUE)
+    x <- gsub("A.D", "AD", x, fixed=TRUE)
+    x <- unlist(strsplit(x, ".", fixed=TRUE))
+    trimws(x)
+}
+
+
 # read in metadata csv
 meta <- read.csv(meta_path, row.names = NULL, stringsAsFactors = FALSE)
+
+# process keywords
+meta$Keywords <- lapply(meta$Keywords, process_keywords)
 
 # add decade column
 dates <- meta$Date
@@ -42,5 +56,13 @@ df <- meta[c("QID", "Title", "Author", "Location", "Publisher", "Date",
 colnames(df) <- c("_id", "title", "author", "location", "publisher", "date", 
                   "decade", "wordCount", "keywords", "language", "fileId", 
                   "stcId", "estcId", "eeboCitation", "proquestId", "vid")
+
+
+# json
+meta_list <- transpose(df)
+docs <- sapply(meta_list, toJSON, auto_unbox = TRUE)
+
+# write to db
+m <- mongo("docs.metadata", url = mongo_url)
 m$remove('{}')
-m$insert(df)
+m$insert(docs, rownames = FALSE)
