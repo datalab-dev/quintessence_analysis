@@ -2,18 +2,15 @@ library(mongolite)
 library(jsonlite)
 library(dplyr)
 library(purrr)
+library(tidyr)
 
 
 mongo_url <- "mongodb://localhost:27017"
-meta_path <- "../tmp/eebo_phase1_2_meta.csv"
-tt_path <- "../tmp/topicterms-75.rds"
-dt_path <- "../tmp/doctopics-75.rds"
 ldavis_path <- "../tmp/ldavis-75.json"
-qid_path <- "../tmp/qid.rds"
-ntopics <- 75
+
 ntopfields <- 5  # number of top field values listed per topic
 ntopdocs <- 5  # number of top docs listed per topic
-beta <- 0.01  # topic model param
+ntopterms <- 20 # number of top terms listed per topic
 
 
 # Names of n largest values in list
@@ -23,7 +20,12 @@ topn <- function(x, n) {
 
 
 # Get the top metadata fields for each topic
-get_top_fields <- function(meta, doc_topics, colname) {
+get_top_fields <- function(meta, doctopics, colname) {
+    ntopics <- ncol(doctopics)
+    
+    if (colname == "keywords")
+        meta <- meta %>% separate_rows("keywords", sep = "--")
+    
     # list of groups
     groups <- meta %>% group_by_at(colname) 
     grouprows <- groups %>% group_rows()
@@ -31,12 +33,10 @@ get_top_fields <- function(meta, doc_topics, colname) {
     
     # subset and take mean of nonzero scores
     get_scores <- function(subset) {
-        qids <- meta[subset,]$QID
-        
-        if (length(qids) == 0)
+        if (length(subset) == 0)
             return(rep(0, ntopics))
         
-        data <- doc_topics[doc_topics$QID %in% qids, 1:75]
+        data <- doctopics[subset, 1:75]
                 
         if (nrow(data) == 0)
             return(rep(0, ntopics))
@@ -50,17 +50,13 @@ get_top_fields <- function(meta, doc_topics, colname) {
     res <- transpose(res)
     topn <- function(x, n) names(head(sort(unlist(x), decreasing = TRUE), n))
     res <- lapply(res, topn, ntopfields)
-    
-    # sapply(res, toJSON)
 }
 
 
 # Get top documents for topic
-get_top_docs <- function(doc_topics) {
-    qids <- doc_topics$QID
-    doc_topics$QID <- NULL
-    topic_docs <- t(doc_topics)
-    colnames(topic_docs) <- qids
+get_top_docs <- function(doctopics) {
+    topicdocs <- t(doctopics)
+    colnames(topicdocs) <- rownames(doctopics)
     
     topn <- function(x, n) {
         vec <- head(sort(unlist(x), decreasing = TRUE), n)
@@ -69,14 +65,14 @@ get_top_docs <- function(doc_topics) {
         lapply(1:length(vec), as_list)
     }
     process_topic <- function(topic) {
-       topn(topic_docs[topic,], ntopdocs)
+       topn(topicdocs[topic,], ntopdocs)
     }
-    lapply(1:nrow(topic_docs), process_topic)
+    lapply(1:nrow(topicdocs), process_topic)
 }
 
 
 # Get top terms for topic
-get_top_terms <- function(topic_terms) {
+get_top_terms <- function(topicterms) {
     topn <- function(x, n) {
         vec <- head(sort(unlist(x), decreasing = TRUE), n)
         as_list <- function(i) list(term = names(vec)[i], 
@@ -84,34 +80,34 @@ get_top_terms <- function(topic_terms) {
         lapply(1:length(vec), as_list)
     }
     process_topic <- function(topic) {
-        topn(topic_terms[topic,], ntopdocs)
+        topn(topicterms[topic,], ntopterms)
     }
-    lapply(1:nrow(topic_terms), process_topic)
+    lapply(1:nrow(topicterms), process_topic)
 }
 
+# read metadata from db collection
+m <- mongo('docs.metadata', url = mongo_url)
+meta <- m$find(query = '{}', fields = '{}')
+meta <- meta[order(meta$`_id`),]
 
-# read in metadata csv
-meta <- read.csv(meta_path, row.names = NULL, stringsAsFactors = FALSE)
-qid <- as.data.frame(readRDS(qid_path))
-meta <- meta[match(qid$File_ID, meta$File_ID),]
-meta$QID <- qid$QID
+# combine keywords into a string
+meta$keywords <- lapply(1:nrow(meta), 
+                        function(i) paste(meta$keywords[[i]], collapse = "--"))
 
-# read in doc topics
-theta <- t(readRDS(dt_path))
-alpha <- 5 / nrow(theta) # mallet default is 5/K
-theta <- theta + alpha # smooth
-doc_topics <- t(theta / rowSums(theta)) # normalize
-get_id <- function(x) sub("^([^.]*).*", "\\1", basename(x))
-doc_topics <- as.data.frame(doc_topics)
-doc_topics$File_ID <- sapply(rownames(doc_topics), get_id)
-doc_topics <- doc_topics[match(qid$File_ID, doc_topics$File_ID),]
-doc_topics$QID <- qid$QID
-doc_topics$File_ID <- NULL
+# read doc topics from db collection
+m <- mongo('docs.topics', url = mongo_url)
+tmp <- m$find(query = '{}', fields = '{}')
+tmp <- tmp[order(tmp$`_id`),]
+doctopics <- lapply(1:nrow(tmp), function(i) tmp[i,]$topics[[1]]$probability)
+doctopics <- data.frame(do.call("rbind", doctopics), row.names = tmp$`_id`)
 
 # read in topic terms
-phi <- as.data.frame(readRDS(tt_path))
-phi <- phi + beta # smooth
-topic_terms <- as.data.frame(phi / rowSums(phi))
+m <- mongo('topics.terms', url = mongo_url)
+tmp <- m$find(query = '{}', fields = '{}')
+tmp <- tmp[order(tmp$`_id`),]
+topicterms <- lapply(1:nrow(tmp), function(i) tmp[i,]$terms[[1]]$probability)
+topicterms <- data.frame(do.call("rbind", topicterms), row.names = tmp$`_id`)
+colnames(topicterms) <- tmp[1,]$terms[[1]]$term
 
 # read in ldavis
 ldavis <- rjson::fromJSON(file = ldavis_path)
@@ -125,18 +121,18 @@ topics$x <- ldavis$mdsDat$x
 topics$y <- ldavis$mdsDat$y
 
 # add top categories
-topics$authors <- get_top_fields(meta, doc_topics, "Author")
-topics$locations <- get_top_fields(meta, doc_topics, "Location")
-topics$keywords <- get_top_fields(meta, doc_topics, "Keywords")
-topics$publishers <- get_top_fields(meta, doc_topics, "Publisher")
+topics$authors <- get_top_fields(meta, doctopics, "author")
+topics$locations <- get_top_fields(meta, doctopics, "location")
+topics$keywords <- get_top_fields(meta, doctopics, "keywords")
+topics$publishers <- get_top_fields(meta, doctopics, "publisher")
 
 # add top docs and terms
-topics$topDocs <- get_top_docs(doc_topics)
-topics$topTerms <- get_top_terms(topic_terms)
+topics$topDocs <- get_top_docs(doctopics)
+topics$topTerms <- get_top_terms(topicterms)
 
 # add proportions
-word_counts <- meta[match(qid$QID, meta$QID),]$Word_Count
-topic_freq <- colSums(doc_topics[,1:ntopics] * word_counts, na.rm = TRUE)
+word_counts <- meta$wordCount
+topic_freq <- colSums(doctopics[,1:ntopics] * word_counts, na.rm = TRUE)
 topics$proportion <- topic_freq / sum(topic_freq)
 
 # json
