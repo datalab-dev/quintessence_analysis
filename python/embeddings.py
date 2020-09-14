@@ -10,12 +10,12 @@ from mongo import db
 class Embeddings:
     def __init__(self, model_dir, stopwords_path=None):
         self.model_dir = Path(model_dir)
-        if stopwords_path is not None:
-            self.stopwords = open("../data/stopwords.txt").read().splitlines()
-        else:
-            self.stopwords = []
+        self.stopwords = open(stopwords_path).read().splitlines()
+        self.authors = open(authors_path).read().splitlines()
+        self.locations = open(locations_path).read().splitlines()
+        self.sentences = self.get_sentences()
 
-    def get_sentences(doc_content):
+    def get_sentences(self, doc_content):
         """
         Given standardized text return list of cleaned and tokenized sentences.
         """
@@ -66,7 +66,7 @@ class Embeddings:
         model.save()
 
     def train_full(self):
-        pass
+        train(self.sentences)
 
     def train_decades(self):
         pass
