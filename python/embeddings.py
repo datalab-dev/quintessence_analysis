@@ -11,8 +11,8 @@ class Embeddings:
     def __init__(self, model_dir, stopwords_path=None):
         self.model_dir = Path(model_dir)
         self.stopwords = open(stopwords_path).read().splitlines()
-        self.authors = open(authors_path).read().splitlines()
-        self.locations = open(locations_path).read().splitlines()
+        # self.authors = open(authors_path).read().splitlines()
+        # self.locations = open(locations_path).read().splitlines()
         self.sentences = self.load_corpus()
 
     def get_sentences(self, doc_content):
@@ -76,12 +76,10 @@ class Embeddings:
         Train word2vec model for each decade.
         """
         pipeline = [
-            {
-                '$group': {
-                    '_id': {'$floor': {'$divide': ['$date', 10]}},
-                    'qids': {'$push': '$_id'}
-                }
-            }
+            {'$group': {
+                '_id': {'$floor': {'$divide': ['$date', 10]}},
+                'qids': {'$push': '$_id'}
+            }}
         ]
         cursor = db.docs.metadata.aggregate(pipeline=pipeline)
         for group in cursor:
@@ -93,13 +91,41 @@ class Embeddings:
         """
         Train word2vec model for each author in self.authors.
         """
-        pass
+        pipeline = [
+            {'$match': {'$_id': {'$in': self.authors}}}
+            {'$unwind': '$author'},
+            {'$group': {
+                '_id': "$author",
+                'qids': {'$push': '$_id'},
+                'wordCount': {'$sum': '$wordCount'}
+            }},
+            {'$match': {'wordCount': {'$gte': 1990000}}}
+        ]
+        cursor = db.docs.metadata.aggregate(pipeline=pipeline)
+        for group in cursor:
+            decade = int(obj['_id'])
+            subset = [self.sentences[i] for i in obj['qids']]
+            train(subset)
 
     def train_locations(self):
         """
         Train word2vec model for each locatio in self.locations.
         """
-        pass
+        pipeline = [
+            {'$match': {'$_id': {'$in': self.locations}}}
+            {'$unwind': '$location'},
+            {'$group': {
+                '_id': "$location",
+                'qids': {'$push': '$_id'},
+                'wordCount': {'$sum': '$wordCount'}
+            }},
+            {'$match': {'wordCount': {'$gte': 2000000}}}
+        ]
+        cursor = db.docs.metadata.aggregate(pipeline=pipeline)
+        for group in cursor:
+            decade = int(obj['_id'])
+            subset = [self.sentences[i] for i in obj['qids']]
+            train(subset)
 
     def load_model(self):
         """Load model from npy file."""
