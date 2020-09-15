@@ -13,7 +13,7 @@ class Embeddings:
         self.stopwords = open(stopwords_path).read().splitlines()
         self.authors = open(authors_path).read().splitlines()
         self.locations = open(locations_path).read().splitlines()
-        self.sentences = self.get_sentences()
+        self.sentences = self.load_corpus()
 
     def get_sentences(self, doc_content):
         """
@@ -66,19 +66,43 @@ class Embeddings:
         model.save()
 
     def train_full(self):
+        """
+        Train word2vec model for full corpus.
+        """
         train(self.sentences)
 
     def train_decades(self):
-        pass
+        """
+        Train word2vec model for each decade.
+        """
+        pipeline = [
+            {
+                '$group': {
+                    '_id': {'$floor': {'$divide': ['$date', 10]}},
+                    'qids': {'$push': '$_id'}
+                }
+            }
+        ]
+        cursor = db.docs.metadata.aggregate(pipeline=pipeline)
+        for group in cursor:
+            decade = int(obj['_id'])
+            subset = [self.sentences[i] for i in obj['qids']]
+            train(subset)
 
     def train_authors(self):
+        """
+        Train word2vec model for each author in self.authors.
+        """
         pass
 
     def train_locations(self):
+        """
+        Train word2vec model for each locatio in self.locations.
+        """
         pass
 
     def load_model(self):
-        """Load model from npy files."""
+        """Load model from npy file."""
         pass
 
     def align(self):
