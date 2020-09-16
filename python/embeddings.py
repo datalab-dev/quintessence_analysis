@@ -65,62 +65,49 @@ class Embeddings:
         # TODO save model
         model.save()
 
-    def train_full(self):
+    def train_type(self, model_type):
         """
-        Train word2vec model for full corpus.
-        """
-        train(self.sentences)
+        Train word2vec model based on specified groupign.
 
-    def train_decades(self):
+        Args:
+            model_type: {'full', 'decades', 'authors', 'locations'}
         """
-        Train word2vec model for each decade.
-        """
-        pipeline = [
-            {'$group': {
-                '_id': {'$floor': {'$divide': ['$date', 10]}},
-                'qids': {'$push': '$_id'}
-            }}
-        ]
-        cursor = db.docs.metadata.aggregate(pipeline=pipeline)
-        for group in cursor:
-            decade = int(obj['_id'])
-            subset = [self.sentences[i] for i in obj['qids']]
-            train(subset)
+        if model_type == 'full':
+            train(self.sentences)
+            return
 
-    def train_authors(self):
-        """
-        Train word2vec model for each author in self.authors.
-        """
-        pipeline = [
-            {'$match': {'$_id': {'$in': self.authors}}}
-            {'$unwind': '$author'},
-            {'$group': {
-                '_id': "$author",
-                'qids': {'$push': '$_id'},
-                'wordCount': {'$sum': '$wordCount'}
-            }},
-            {'$match': {'wordCount': {'$gte': 1990000}}}
-        ]
-        cursor = db.docs.metadata.aggregate(pipeline=pipeline)
-        for group in cursor:
-            decade = int(obj['_id'])
-            subset = [self.sentences[i] for i in obj['qids']]
-            train(subset)
+        if model_type == 'decades':
+            pipeline = [
+                {'$group': {
+                    '_id': {'$floor': {'$divide': ['$date', 10]}},
+                    'qids': {'$push': '$_id'}
+                }}
+            ]
+        elif model_type == 'authors':
+            pipeline = [
+                {'$match': {'$_id': {'$in': self.authors}}}
+                {'$unwind': '$author'},
+                {'$group': {
+                    '_id': "$author",
+                    'qids': {'$push': '$_id'},
+                    'wordCount': {'$sum': '$wordCount'}
+                }},
+                {'$match': {'wordCount': {'$gte': 1990000}}}
+            ]
+        elif model_type == 'locations':
+            pipeline = [
+                {'$match': {'$_id': {'$in': self.locations}}}
+                {'$unwind': '$location'},
+                {'$group': {
+                    '_id': "$location",
+                    'qids': {'$push': '$_id'},
+                    'wordCount': {'$sum': '$wordCount'}
+                }},
+                {'$match': {'wordCount': {'$gte': 2000000}}}
+            ]
+        else:
+            raise ValueError("invalid model type")
 
-    def train_locations(self):
-        """
-        Train word2vec model for each locatio in self.locations.
-        """
-        pipeline = [
-            {'$match': {'$_id': {'$in': self.locations}}}
-            {'$unwind': '$location'},
-            {'$group': {
-                '_id': "$location",
-                'qids': {'$push': '$_id'},
-                'wordCount': {'$sum': '$wordCount'}
-            }},
-            {'$match': {'wordCount': {'$gte': 2000000}}}
-        ]
         cursor = db.docs.metadata.aggregate(pipeline=pipeline)
         for group in cursor:
             decade = int(obj['_id'])
@@ -135,19 +122,45 @@ class Embeddings:
         """Create terms.timeseries.""""
         pass
 
-    def nn(self):
-        """Create terms.neighbors.""""
-        pass
+    def nn(self, model_type, n=20):
+        """
+        Create terms.neighbors.
+
+        Args:
+            model_type: {'full', 'decades', 'authors', 'locations'}
+            n: the number of top nearest neighbors to store
+        """"
+        # TODO load models  + model names from somwhere
+
+        vocab = model.wv.vocab.keys
+        termdict = {}
+        termdict[model_type] = {
+            model_name: {neighbors=[], scores=[]} for model_name in model_names
+        }
+        nndict = {term: termdict for term in vocab}
+
+        for model in models:
+            for term in vocab:
+                results = vocab.most_similar(word, topn=n)
+                for result in results:
+                    nn = nndict[term][model_type][model_name]
+                    nn.neighbors.append(result[0])
+                    nn.scores.append(result[1])
+
+        update = {'$set': nndict}
+        db['terms.neighbors'].update_many({}, update)
 
     def freq(self):
         """"Create topics.frequencies."""
         pass
 
     def update(self):
-        self.train_full()
-        self.train_decades()
-        self.train_authors()
-        self.train_locations()
+        self.train_type(type='full')
+        self.train_type(type='decades')
+        self.train_type(type='authors')
+        self.train_type(type='locations')
         self.align()
-        self.nn()
+        self.nn(type='decades')
+        self.nn(type='authors')
+        self.nn(type='locations')
         self.freq()
