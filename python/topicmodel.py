@@ -1,4 +1,6 @@
+import os
 import subprocess
+import pandas as pd
 
 from utils.mongo import db
 
@@ -9,7 +11,9 @@ class TopicModel:
 
 
     def train(self):
-        """Train topic model using mallet."""
+        """
+        Train topic model using mallet.
+        """
         # TODO load the corpus from mongo
 
         # TODO write text files to a temp directory
@@ -43,7 +47,9 @@ class TopicModel:
         pass
 
     def load_model(self):
-        """Load model from mallet ouput files."""
+        """
+        Load model from mallet ouput files.
+        """
         # TODO load dtm
 
         # TODO load doc topics
@@ -78,8 +84,10 @@ class TopicModel:
         """
         Create docs.topics
         """"
-        # load as pandas dataframe
-        theta = pd.read_csv(self.model_dir + 'doctopics-75.dat', sep='\t', header=None)
+        # TODO load a dataframe from somewhere (change below line based on
+        # how mallet outputs are parsed)
+        theta = pd.read_csv(self.model_dir + 'doctopics.dat', sep='\t',
+                            header=None)
         fnames = theta[1]
         theta.head()
         del theta[0] # row numbers
@@ -90,6 +98,7 @@ class TopicModel:
         theta = theta + alpha # smooth
         doctopics = theta.div(theta.sum(axis=0), axis=1) # normalize columns
 
+        docs = []
         for i, fname in enumerate(fnames):
             fileid = os.path.splitext(os.path.basename(fname))[0]
             res = db['docs.metadata'].find_one({'fileId': fileid}, {'_id': 1})
@@ -103,14 +112,30 @@ class TopicModel:
         db['docs.topics'].insert_many(docs)
 
     def topicterms(self):
-        """"Create topics.terms"""
-        pass
+        """"
+        Create terms.topics
+        """
+        # TODO load a dataframe from somewhere
 
+        # normalize and smooth topic terms
+        beta = 0.01 # mallet default
+        phi = phi + beta
+        topicterms = phi.div(phi.sum(axis=1), axis=0) # normalize rows
+
+        docs = []
+        for term in topicterms.columns:
+            topics = [{'topicId': j+1, 'probability': p} for j, p in
+                      enumerate(topicterms[term])]
+            docs.append({'_id': term, 'topics': topics})
+
+        db['terms.topics'].remove({})
+        db['terms.topics'].insert_many(docs)
 
     def topics(self):
-        """Create topics""""
+        """
+        Create topics
+        """"
         pass
-
 
     def update(self):
         self.train()
