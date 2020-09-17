@@ -5,7 +5,7 @@ from utils.mongo import db
 
 class TopicModel:
     def __init__(self, model_dir):
-        self.model_dir = Path(model_dir)
+        self.model_dir = model_dir
 
 
     def train(self):
@@ -75,9 +75,32 @@ class TopicModel:
 
 
     def doctopics(self):
-        """Create docs.topics""""
-        pass
+        """
+        Create docs.topics
+        """"
+        # load as pandas dataframe
+        theta = pd.read_csv(self.model_dir + 'doctopics-75.dat', sep='\t', header=None)
+        fnames = theta[1]
+        theta.head()
+        del theta[0] # row numbers
+        del theta[1] # filenames
 
+        # normalize and smooth document topics
+        alpha = 5 / theta.shape[1] # mallet default is 5/K
+        theta = theta + alpha # smooth
+        doctopics = theta.div(theta.sum(axis=0), axis=1) # normalize columns
+
+        for i, fname in enumerate(fnames):
+            fileid = os.path.splitext(os.path.basename(fname))[0]
+            res = db['docs.metadata'].find_one({'fileId': fileid}, {'_id': 1})
+            qid = res['_id']
+
+            topics = [{'topicId': j+1, 'probability': p} for j, p in
+                      enumerate(doctopics.iloc[i])]
+            docs.append({'_id': qid, 'topics': topics})
+
+        db['docs.topics'].remove({})
+        db['docs.topics'].insert_many(docs)
 
     def topicterms(self):
         """"Create topics.terms"""

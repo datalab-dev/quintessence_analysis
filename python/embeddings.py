@@ -9,7 +9,7 @@ from utils.mongo import db
 
 class Embeddings:
     def __init__(self, model_dir, stopwords_path=None):
-        self.model_dir = Path(model_dir)
+        self.model_dir = model_dir
         self.stopwords = open(stopwords_path).read().splitlines()
         self.sentences = self.load_corpus()
 
