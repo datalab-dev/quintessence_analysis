@@ -4,7 +4,7 @@ from joblib import Parallel, delayed
 import nltk
 import string
 
-from mongo import db
+from utils.mongo import db
 
 
 class Embeddings:
@@ -111,11 +111,15 @@ class Embeddings:
             train(subset)
 
     def load_model(self):
-        """Load model from npy file."""
+        """
+        Load model from npy file.
+        """
         pass
 
     def align(self):
-        """Create terms.timeseries.""""
+        """
+        Create terms.timeseries.
+        """"
         # TODO add smart_procrustes_align_gensim (maybe in utils?)
 
         # TODO load models  + model names from somwhere
@@ -215,6 +219,7 @@ class Embeddings:
         self.train_type(type='authors')
         self.train_type(type='locations')
         self.align()
+        self.nn(type='full')
         self.nn(type='decades')
         self.nn(type='authors')
         self.nn(type='locations')

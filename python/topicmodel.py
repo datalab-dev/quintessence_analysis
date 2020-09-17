@@ -1,5 +1,7 @@
 import subprocess
 
+from utils.mongo import db
+
 
 class TopicModel:
     def __init__(self, model_dir):
@@ -52,8 +54,24 @@ class TopicModel:
 
 
     def firstpos(self):
-        """Create terms.positions""""
-        pass
+        """
+        Create terms.positions
+        """"
+        # TODO load a list of terms from somewhere
+
+        # load truncated documents from the database
+        cursor = db['docs.truncated'].find({}, {'lemma': 1})
+
+        docs = []
+        for term in terms:
+            tmp = {'_id': term, 'firstPositions': []}
+            for doc in cursor:
+                pos = doc['lemma'].split('\t').index(term)
+                tmp.firstPositions.append({'qid': doc['_id'], 'position': pos})
+            docs.append(tmp)
+
+        db['terms.positions'].remove({})
+        db['terms.positions'].insert_many(docs)
 
 
     def doctopics(self):

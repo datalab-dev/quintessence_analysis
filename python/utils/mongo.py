@@ -17,4 +17,4 @@ def get_mongo_db(credentials_path):
     return client[credentials['dbname']]
 
 
-db = get_mongo_db('../../mongo_credentials.json')
+db = get_mongo_db('../mongo_credentials.json')
