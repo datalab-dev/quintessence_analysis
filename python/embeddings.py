@@ -11,8 +11,6 @@ class Embeddings:
     def __init__(self, model_dir, stopwords_path=None):
         self.model_dir = Path(model_dir)
         self.stopwords = open(stopwords_path).read().splitlines()
-        # self.authors = open(authors_path).read().splitlines()
-        # self.locations = open(locations_path).read().splitlines()
         self.sentences = self.load_corpus()
 
     def get_sentences(self, doc_content):
@@ -85,7 +83,6 @@ class Embeddings:
             ]
         elif model_type == 'authors':
             pipeline = [
-                {'$match': {'$_id': {'$in': self.authors}}}
                 {'$unwind': '$author'},
                 {'$group': {
                     '_id': "$author",
@@ -96,7 +93,6 @@ class Embeddings:
             ]
         elif model_type == 'locations':
             pipeline = [
-                {'$match': {'$_id': {'$in': self.locations}}}
                 {'$unwind': '$location'},
                 {'$group': {
                     '_id': "$location",
