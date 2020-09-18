@@ -33,7 +33,7 @@ class TopicModel:
 
         # train model
         model = LdaMallet(self.mallet_path, corpus=corpus,
-                          num_topics=self.num_topics)
+                          num_topics=self.num_topics, id2word=dictionary)
 
         # save models
         self.model = model
@@ -49,7 +49,7 @@ class TopicModel:
         """
         Create terms.positions
         """"
-        # TODO load a list of terms from somewhere
+        terms = [self.model.id2word[i] for i in range(len(model.id2word.keys()))]
 
         # load truncated documents from the database
         cursor = db['docs.truncated'].find({}, {'lemma': 1})
@@ -70,29 +70,13 @@ class TopicModel:
         """
         Create docs.topics
         """"
-        # TODO load a dataframe from somewhere (change below line based on
-        # how mallet outputs are parsed)
-        # using gensim model.load_document_topics()
-        theta = pd.read_csv(self.model_dir + 'doctopics.dat', sep='\t',
-                            header=None)
-        fnames = theta[1]
-        theta.head()
-        del theta[0] # row numbers
-        del theta[1] # filenames
-
-        # normalize and smooth document topics
-        alpha = 5 / theta.shape[1] # mallet default is 5/K
-        theta = theta + alpha # smooth
-        doctopics = theta.div(theta.sum(axis=0), axis=1) # normalize columns
+        doctopics = model.load_document_topics()
 
         docs = []
-        for i, fname in enumerate(fnames):
-            fileid = os.path.splitext(os.path.basename(fname))[0]
-            res = db['docs.metadata'].find_one({'fileId': fileid}, {'_id': 1})
-            qid = res['_id']
-
-            topics = [{'topicId': j+1, 'probability': p} for j, p in
-                      enumerate(doctopics.iloc[i])]
+        for qid, row in enumerate(doc_topics):
+            topics = []
+            for topic, probability in row:
+                topics.append({'topicId': topic, 'probability': probability})
             docs.append({'_id': qid, 'topics': topics})
 
         db['docs.topics'].remove({})
@@ -102,16 +86,17 @@ class TopicModel:
         """"
         Create terms.topics
         """
-        # TODO load a dataframe from somewhere
-        # model.get_topics() [num_topics x vocabulary_size]
+        phi = self.model.load_word_topics()
 
-        # normalize and smooth topic terms
+        # normalize and smooth document topics
         beta = 0.01 # mallet default
         phi = phi + beta
-        topicterms = phi.div(phi.sum(axis=1), axis=0) # normalize rows
+        termtopics = np.apply_along_axis(lambda x: x / x.sum(), 0, phi)
+        topicterms = np.transpose(termtopics)
 
         docs = []
-        for term in topicterms.columns:
+        for i in range(topicterms.shape[1]):
+            term = self.mode.id2word[i]
             topics = [{'topicId': j+1, 'probability': p} for j, p in
                       enumerate(topicterms[term])]
             docs.append({'_id': term, 'topics': topics})
@@ -123,6 +108,7 @@ class TopicModel:
         """
         Create topics
         """"
+        # TODO everything
         pass
 
     def update(self):
