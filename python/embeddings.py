@@ -5,6 +5,7 @@ import nltk
 import string
 
 from utils.mongo import db
+import utils.nlp
 
 
 class Embeddings:
@@ -12,23 +13,6 @@ class Embeddings:
         self.model_dir = model_dir
         self.stopwords = open(stopwords_path).read().splitlines()
         self.sentences = self.load_corpus()
-
-    def get_sentences(self, doc_content):
-        """
-        Given standardized text return list of cleaned and tokenized sentences.
-        """
-        cleaned = []
-        doc_content = doc_content.replace("\t", " ")
-        sentences = nltk.sent_tokenize(doc_content)
-
-        for s in sentences:
-            s = s.lower()
-            s = s.replace('|', ' ')
-            s = s.translate(str.maketrans('', '', string.punctuation))
-            words = [w for w in s.split() if w not in self.stopwords]
-            cleaned.append(words)
-
-        return cleaned
 
     def load_corpus(self):
         """
@@ -40,7 +24,7 @@ class Embeddings:
 
         # split and clean
         sentences = Parallel(n_jobs=80)(
-            delayed(get_sentences)(doc['standardized']) for doc in docs)
+            delayed(nlp.tokenize)(doc['standardized']) for doc in docs)
 
         return sentences
 
