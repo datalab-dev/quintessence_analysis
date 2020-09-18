@@ -3,6 +3,7 @@ import subprocess
 import pandas as pd
 from gensim.models.wrappers import LdaMallet
 from gensim.corpora import Dictionary
+from joblib import Parallel, delayed
 
 from utils.mongo import db
 import utils.nlp
@@ -25,7 +26,7 @@ class TopicModel:
 
         # split and clean
         tokenized = Parallel(n_jobs=80)(
-            delayed(nlp.tokenize)(doc['lemma']) for doc in docs)
+            delayed(nlp.tokenize)(doc['lemma'], True) for doc in docs)
 
         dictionary = Dictionary(tokenized)
         dictionary.filter_extremes(no_below=200, no_above=0.2) # prune
