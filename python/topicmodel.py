@@ -108,7 +108,7 @@ class TopicModel:
         """
         Create topics
         """"
-        # TODO everything
+        # TODO everything (see topics_to_mongo.R)
         pass
 
     def update(self):
