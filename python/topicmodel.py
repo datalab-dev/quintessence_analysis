@@ -49,7 +49,7 @@ class TopicModel:
     def firstpos(self):
         """
         Create terms.positions
-        """"
+        """
         terms = [self.model.id2word[i] for i in range(len(model.id2word.keys()))]
 
         # load truncated documents from the database
@@ -70,7 +70,7 @@ class TopicModel:
     def doctopics(self):
         """
         Create docs.topics
-        """"
+        """
         doctopics = model.load_document_topics()
 
         docs = []
@@ -84,7 +84,7 @@ class TopicModel:
         db['docs.topics'].insert_many(docs)
 
     def topicterms(self):
-        """"
+        """
         Create terms.topics
         """
         phi = self.model.load_word_topics()
@@ -108,7 +108,7 @@ class TopicModel:
     def topics(self):
         """
         Create topics
-        """"
+        """
         # TODO everything (see topics_to_mongo.R)
         pass
 
