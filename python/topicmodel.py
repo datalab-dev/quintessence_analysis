@@ -46,7 +46,7 @@ class TopicModel:
         """
         self.model = LdaMallet.load(mallet_path)
 
-    def firstpos(self):
+    def write_first_positions_collection(self):
         """
         Create terms.positions
         """
@@ -67,7 +67,7 @@ class TopicModel:
         db['terms.positions'].insert_many(docs)
 
 
-    def doctopics(self):
+    def write_doc_topics_collection(self):
         """
         Create docs.topics
         """
@@ -83,7 +83,7 @@ class TopicModel:
         db['docs.topics'].remove({})
         db['docs.topics'].insert_many(docs)
 
-    def topicterms(self):
+    def write_terms_topics_collection(self):
         """
         Create terms.topics
         """
@@ -105,17 +105,22 @@ class TopicModel:
         db['terms.topics'].remove({})
         db['terms.topics'].insert_many(docs)
 
-    def topics(self):
+    def write_topics_collection(self):
         """
         Create topics
         """
         # TODO everything (see topics_to_mongo.R)
         pass
 
+    def write_collections(self):
+        self.write_first_pos_collection()
+        self.write_doc_topics_collection()
+        self.write_terms_topics_collection()
+        self.write_topics_collection()
+
     def update(self):
+        print("running model")
         self.train()
         self.load_model()
-        self.firstpos()
-        self.doctopics()
-        self.topicterms()
-        self.topics()
+        print("writing collections to database")
+        self.write_collections()
