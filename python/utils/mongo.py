@@ -6,7 +6,7 @@ def get_mongo_db(credentials_path):
     # construct mongo url
     with open(credentials_path, 'r') as f:
         credentials = json.load(f)
-        url = f"mongodb://{credentials['server']}:{credentials['port']}"
+        url = f"mongodb://{credentials['host']}:{credentials['port']}"
 
     # try to form client connection
     try:
@@ -14,7 +14,7 @@ def get_mongo_db(credentials_path):
     except pymongo.errors.ConnectionFailure:
          print(f"Failed to connect to {url}")
 
-    return client[credentials['dbname']]
+    return client[credentials['database']]
 
 
 db = get_mongo_db('../mongo_credentials.json')
