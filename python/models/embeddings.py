@@ -1,12 +1,9 @@
 import time
+import string
+
 import pymongo
 from joblib import Parallel, delayed
 import nltk
-import string
-
-from utils.mongo import db
-import utils.nlp
-
 
 class Embeddings:
     def __init__(self, model_dir, stopwords_path=None):

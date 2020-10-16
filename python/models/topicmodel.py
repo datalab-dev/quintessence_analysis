@@ -1,13 +1,10 @@
 import os
 import subprocess
 import pandas as pd
+
 from gensim.models.wrappers import LdaMallet
 from gensim.corpora import Dictionary
 from joblib import Parallel, delayed
-
-from utils.mongo import db
-import utils.nlp
-
 
 class TopicModel:
     def __init__(self, model_path, mallet_path=None, num_topics=None):
@@ -45,82 +42,3 @@ class TopicModel:
         Load a previously saved model.
         """
         self.model = LdaMallet.load(mallet_path)
-
-    def write_first_positions_collection(self):
-        """
-        Create terms.positions
-        """
-        terms = [self.model.id2word[i] for i in range(len(model.id2word.keys()))]
-
-        # load truncated documents from the database
-        cursor = db['docs.truncated'].find({}, {'lemma': 1})
-
-        docs = []
-        for term in terms:
-            tmp = {'_id': term, 'firstPositions': []}
-            for doc in cursor:
-                pos = doc['lemma'].split('\t').index(term)
-                tmp.firstPositions.append({'qid': doc['_id'], 'position': pos})
-            docs.append(tmp)
-
-        db['terms.positions'].remove({})
-        db['terms.positions'].insert_many(docs)
-
-
-    def write_doc_topics_collection(self):
-        """
-        Create docs.topics
-        """
-        doctopics = model.load_document_topics()
-
-        docs = []
-        for qid, row in enumerate(doc_topics):
-            topics = []
-            for topic, probability in row:
-                topics.append({'topicId': topic, 'probability': probability})
-            docs.append({'_id': qid, 'topics': topics})
-
-        db['docs.topics'].remove({})
-        db['docs.topics'].insert_many(docs)
-
-    def write_terms_topics_collection(self):
-        """
-        Create terms.topics
-        """
-        phi = self.model.load_word_topics()
-
-        # normalize and smooth document topics
-        beta = 0.01 # mallet default
-        phi = phi + beta
-        termtopics = np.apply_along_axis(lambda x: x / x.sum(), 0, phi)
-        topicterms = np.transpose(termtopics)
-
-        docs = []
-        for i in range(topicterms.shape[1]):
-            term = self.mode.id2word[i]
-            topics = [{'topicId': j+1, 'probability': p} for j, p in
-                      enumerate(topicterms[term])]
-            docs.append({'_id': term, 'topics': topics})
-
-        db['terms.topics'].remove({})
-        db['terms.topics'].insert_many(docs)
-
-    def write_topics_collection(self):
-        """
-        Create topics
-        """
-        # TODO everything (see topics_to_mongo.R)
-        pass
-
-    def write_collections(self):
-        self.write_first_pos_collection()
-        self.write_doc_topics_collection()
-        self.write_terms_topics_collection()
-        self.write_topics_collection()
-
-    def update(self):
-        print("running model")
-        self.train()
-        self.load_model()
-        print("writing collections to database")
-        self.write_collections()

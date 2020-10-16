@@ -1,4 +1,4 @@
-def tokenize(self, doc_content, words_only=False):
+def tokenize(doc_content, words_only=False):
     """
     Given standardized text return list of cleaned and tokenized sentences.
     """
