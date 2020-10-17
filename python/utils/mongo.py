@@ -18,7 +18,8 @@ class Mongo:
         self.db = client[credentials['database']]
 
     def get_topic_model_data(self):
-        docs = list(self.db["docs.lemma"].find({}))
+        res = list(self.db["docs.lemma"].find({}))
+        docs = [r["lemma"] for r in res]
         return docs
 
 #    def write_topic_model_data(model):

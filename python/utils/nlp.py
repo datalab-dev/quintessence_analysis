@@ -1,6 +1,12 @@
-def tokenize(doc_content, words_only=False):
+import string
+from itertools import chain
+
+import nltk
+from nltk.corpus import stopwords
+
+def preprocess(doc_content, words_only=True):
     """
-    Given standardized text return list of cleaned and tokenized sentences.
+    Given text from db (tab delimited strings) return list of cleaned and tokenized sentences or words.
     """
     cleaned = []
     doc_content = doc_content.replace("\t", " ")
@@ -8,9 +14,8 @@ def tokenize(doc_content, words_only=False):
 
     for s in sentences:
         s = s.lower()
-        s = s.replace('|', ' ')
         s = s.translate(str.maketrans('', '', string.punctuation))
-        words = [w for w in s.split() if w not in self.stopwords]
+        words = [w for w in s.split() if w not in stopwords.words('english')]
         cleaned.append(words)
 
     if words_only:
