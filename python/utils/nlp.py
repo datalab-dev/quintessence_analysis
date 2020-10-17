@@ -1,24 +1,23 @@
 import string
-from itertools import chain
+import re
 
 import nltk
 from nltk.corpus import stopwords
 
-def preprocess(doc_content, words_only=True):
+
+def normalize(text):
     """
-    Given text from db (tab delimited strings) return list of cleaned and tokenized sentences or words.
+    Given string of words (whitespace delim), return string of normalized words
     """
+    PUNCT_RE = r'[!"#$%&\'()*+,./:;<=>?@\^_`{|}~]'
+    s = stopwords.words('english')
     cleaned = []
-    doc_content = doc_content.replace("\t", " ")
-    sentences = nltk.sent_tokenize(doc_content)
 
-    for s in sentences:
-        s = s.lower()
-        s = s.translate(str.maketrans('', '', string.punctuation))
-        words = [w for w in s.split() if w not in stopwords.words('english')]
-        cleaned.append(words)
+    text = text.lower()
+    text = re.sub(r'\d+', '', text)
+    text = re.sub(PUNCT_RE, '', text)
+    text = re.sub(r'\s\s+', ' ', text)  # Handle excess whitespace
+    text = ' '.join(x for x in text.split() if x not in s)
+    text = text.strip()  # No whitespace at start and end of string
 
-    if words_only:
-        cleaned = list(chain.from_iterable(cleaned))
-
-    return cleaned
+    return text
