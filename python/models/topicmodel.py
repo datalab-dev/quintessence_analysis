@@ -1,10 +1,5 @@
-import os
-import subprocess
-import pandas as pd
-
 from gensim.models.wrappers import LdaMallet
 from gensim.corpora import Dictionary
-from joblib import Parallel, delayed
 
 class TopicModel:
     def __init__(self, model_path, mallet_path=None, num_topics=None):
@@ -13,21 +8,14 @@ class TopicModel:
         self.num_topics = num_topics
         self.model = None # LdaMallet obj
 
-    def train(self):
+    def train(self, docs):
         """
         Train topic model using mallet.
         """
-        # load the corpus from mongo
-        cursor = db.docs.find(projection={'lemma': 1}).sort('_id', 1)
-        docs = cursor[:]
-
-        # split and clean
-        tokenized = Parallel(n_jobs=80)(
-            delayed(nlp.tokenize)(doc['lemma'], True) for doc in docs)
-
-        dictionary = Dictionary(tokenized)
-        dictionary.filter_extremes(no_below=200, no_above=0.2) # prune
-        corpus = [dictionary.doc2bow(doc) for doc in tokenized]
+        docs = [doc.split() for doc in docs]
+        dictionary = Dictionary(docs)
+        dictionary.filter_extremes(no_below=int(0.01 * len(docs)), no_above=0.8) # prune
+        corpus = [dictionary.doc2bow(doc) for doc in docs]
 
         # train model
         model = LdaMallet(self.mallet_path, corpus=corpus,
