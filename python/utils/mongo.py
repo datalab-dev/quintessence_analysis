@@ -19,7 +19,7 @@ class Mongo:
 
     def get_topic_model_data(self):
         res = list(self.db["docs.lemma"].find({}))
-        docs = [r["lemma"] for r in res]
+        docs = [r["lemma"].split('\t') for r in res]
         return docs
 
 #    def write_topic_model_data(model):
