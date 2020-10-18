@@ -1,3 +1,5 @@
+import os
+
 from gensim.models.wrappers import LdaMallet
 from gensim.corpora import Dictionary
 
@@ -29,4 +31,4 @@ class TopicModel:
         """
         Load a previously saved model.
         """
-        self.model = LdaMallet.load(mallet_path)
+        self.model = LdaMallet.load(self.model_path)
