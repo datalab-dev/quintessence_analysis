@@ -1,5 +1,6 @@
 import json
 
+import numpy as np
 from pymongo import MongoClient
 from gensim.models.wrappers import LdaMallet
 
@@ -22,36 +23,36 @@ class Mongo:
         docs = [" ".join(r["lemma"].split('\t')) for r in res]
         return docs
 
-#    def write_topic_model_data(model):
-#        doctopics = model.load_document_topics()
-#        phi = self.model.load_word_topics()
-#        beta = 0.01 # mallet default
-#        phi = phi + beta
-#
-#        # Create docs.topics
-#        docs = []
-#        for qid, row in enumerate(doc_topics):
-#            topics = []
-#            for topic, probability in row:
-#                topics.append({'topicId': topic, 'probability': probability})
-#            docs.append({'_id': qid, 'topics': topics})
-#
-#        db['docs.topics'].remove({})
-#        db['docs.topics'].insert_many(docs)
-#
-#       # Create terms.topics
-#        termtopics = np.apply_along_axis(lambda x: x / x.sum(), 0, phi) # normalize and smooth document topics
-#        topicterms = np.transpose(termtopics)
-#
-#        docs = []
-#        for i in range(topicterms.shape[1]):
-#            term = self.mode.id2word[i]
-#            topics = [{'topicId': j+1, 'probability': p} for j, p in
-#                      enumerate(topicterms[term])]
-#            docs.append({'_id': term, 'topics': topics})
-#
-#        db['terms.topics'].remove({})
-#        db['terms.topics'].insert_many(docs)
+    def write_topic_model_data(self, model):
+        doctopics = model.load_document_topics()
+        phi = model.load_word_topics()
+        beta = 0.01 # mallet default
+        phi = phi + beta
+
+        # Create docs.topics
+        docs = []
+        for qid, row in enumerate(doctopics):
+            topics = []
+            for topic, probability in row:
+                topics.append({'topicId': topic, 'probability': probability})
+            docs.append({'_id': qid, 'topics': topics})
+
+        self.db['docs.topics'].remove({})
+        self.db['docs.topics'].insert_many(docs)
+
+       # Create terms.topics
+        termtopics = np.apply_along_axis(lambda x: x / x.sum(), 0, phi) # normalize and smooth document topics
+        topicterms = np.transpose(termtopics)
+
+        docs = []
+        for i in range(topicterms.shape[1]):
+            term = model.id2word[i]
+            topics = [{'topicId': j+1, 'probability': p} for j, p in
+                      enumerate(topicterms[i])]
+            docs.append({'_id': term, 'topics': topics})
+
+        self.db['terms.topics'].remove({})
+        self.db['terms.topics'].insert_many(docs)
 #
 #        """
 #        Create topics
