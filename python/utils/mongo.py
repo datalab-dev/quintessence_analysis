@@ -58,9 +58,9 @@ class Mongo:
 
         self.db['terms.topics'].remove({})
         self.db['terms.topics'].insert_many(docs)
-#
-#        """
-#        Create topics
+
+        """
+        Create topics
          proportion: 0.0294,
          x: -0.13,
          y: 0.115,
@@ -69,13 +69,13 @@ class Mongo:
          keywords: [...],
          publishers: [...],
          topDocs: [1, 5, 345, 657, 34503]
-#        """
+        """
          #proporitons = compute_proportions(doc_topics, doc_lens)
          #x,y = compute_coordinates(topic_terms)
          # meta is calculated as such:
          # filter docs based on meta
          # get mean of nonzeros of topic proportion for each subset for each topic
-         meta = pd.DataFrame.from_records(self.get_metadata())
+#         meta = pd.DataFrame.from_records(self.get_metadata())
 
 
 
