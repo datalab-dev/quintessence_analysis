@@ -11,6 +11,7 @@ lda = TopicModel(model_path = "../data/topicmodel/mallet.model",
         num_topics = 10)
 
 print("running topic model")
+meta = mongo.get_metadata()
 #docs = mongo.get_topic_model_data()[0:20]
 #docs = Parallel(n_jobs=4)(delayed(normalize)(doc) for doc in docs)
 #lda.train(docs)
