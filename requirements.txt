@@ -1,6 +1,0 @@
-pymongo
-nltk
-joblib
-gensim
-pandas
-numpy
