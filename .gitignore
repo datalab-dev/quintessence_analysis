@@ -1,6 +1,34 @@
-*swp
-
-data/
-
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*py[cod]
+*.py[cod]
+
+# build files
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+.python-version
+
+# vim swap files
+*.swp
+
+# sample data
+sample_data
+
+# sensitive information
+mongo-credentials.json
+
+# log files
+*.log
