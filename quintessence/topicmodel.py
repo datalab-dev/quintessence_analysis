@@ -13,6 +13,8 @@ class TopicModel:
     def train(self, docs):
         """
         Train topic model using mallet.
+
+        Expects docs to be a list of normalized strings where each string is a unique document
         """
         docs = [doc.split() for doc in docs]
         dictionary = Dictionary(docs)
