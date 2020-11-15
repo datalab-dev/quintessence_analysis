@@ -4,19 +4,23 @@ import nltk
 from nltk.corpus import stopwords
 
 
-def normalize(text):
+def normalize_text(text,
+        lower = True,
+        punct = True,
+        digits = True,
+        stopwords = stopwords.words('english'),
+        minlen = 2,
+        ):
     """
     Given string of words (whitespace delim), return string of normalized words
     """
     PUNCT_RE = r'[\[\]|!"#$%&\'()*+,./:;<=>?@\^_`{|}~]'
-    s = stopwords.words('english')
-    cleaned = []
 
-    text = text.lower()
-    text = re.sub(r'\d+', '', text)
-    text = re.sub(PUNCT_RE, '', text)
-    text = re.sub(r'\s\s+', ' ', text)  # Handle excess whitespace
-    text = ' '.join(x for x in text.split() if x not in s and len(x) > 1)
-    text = text.strip()  # No whitespace at start and end of string
+    if lower: text = text.lower()
+    if punct: text = re.sub(PUNCT_RE, '', text)
+    if digits: text = re.sub(r'\d+', '', text)
+    text = ' '.join(x for x in text.split() if x not in stopwords and len(x) > minlen)
 
+    # handle excess whitespace from removed terms
+    text = " ".join(text.split())
     return text
