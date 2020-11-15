@@ -3,7 +3,6 @@ import re
 import nltk
 from nltk.corpus import stopwords
 
-
 def normalize_text(text,
         lower = True,
         punct = True,
@@ -24,3 +23,9 @@ def normalize_text(text,
     # handle excess whitespace from removed terms
     text = " ".join(text.split())
     return text
+
+def compute_proportions(doc_topics, doc_lens):
+    return
+
+def compute_coordinates(topic_terms):
+    return
