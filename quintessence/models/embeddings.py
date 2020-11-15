@@ -1,12 +1,9 @@
 import time
+import string
+
 import pymongo
 from joblib import Parallel, delayed
 import nltk
-import string
-
-from utils.mongo import db
-import utils.nlp
-
 
 class Embeddings:
     def __init__(self, model_dir, stopwords_path=None):
@@ -103,7 +100,7 @@ class Embeddings:
     def align(self):
         """
         Create terms.timeseries.
-        """"
+        """
         # TODO add smart_procrustes_align_gensim (maybe in utils?)
 
         # TODO load models  + model names from somwhere
@@ -134,7 +131,7 @@ class Embeddings:
         Args:
             model_type: {'full', 'decades', 'authors', 'locations'}
             n: the number of top nearest neighbors to store
-        """"
+        """
         # TODO load models  + model names from somwhere
 
         if model_type == 'full':
@@ -163,7 +160,7 @@ class Embeddings:
         db['terms.neighbors'].update_many({}, update)
 
     def freq(self, model_type):
-        """"
+        """
         Create terms.frequencies.
 
         Args:
