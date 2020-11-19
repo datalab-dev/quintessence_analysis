@@ -26,7 +26,8 @@ class Mongo:
     def get_topic_model_data(self):
         res = list(self.db["docs.lemma"].find({}))
         docs = [" ".join(r["lemma"].split('\t')) for r in res]
-        return docs
+        ids = [r["_id"] for r in res]
+        return (ids, docs)
 
     def write_topic_model_data(self, model):
         doctopics = model.load_document_topics()
