@@ -39,7 +39,7 @@ class TopicModel:
                           num_topics=self.num_topics, id2word=self.dictionary)
 
         tdm = corpus2csc(self.corpus)
-        self.topicterms = self.model.get_topics()
+        self.topicterms = self.model.get_topics() + 0.01 # mallet default beta
         self.doctopics = corpus2csc([i for i in self.model.load_document_topics()]).T
         self.doc_lens = np.asarray(tdm.sum(axis=0))
         self.fnames = fnames
@@ -60,7 +60,7 @@ class TopicModel:
         Load a previously saved model and the other files that should be in the odir
         """
         self.model = LdaMallet.load(self.model_odir + "/mallet.model")
-        self.topicterms = self.model.get_topics()
+        self.topicterms = self.model.get_topics() + 0.01
         self.doctopics = corpus2csc([i for i in self.model.load_document_topics()]).T
 
         # need corpus
