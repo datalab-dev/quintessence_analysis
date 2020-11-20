@@ -16,7 +16,7 @@ con = Mongo("./mongo_credentials.json")
 print("Running Topic Model")
 ids, docs = con.get_topic_model_data()
 docs = [normalize_text(doc) for doc in docs]
-lda = TopicModel("./data/topicmodel/mallet.model", 
+lda = TopicModel("./data/topicmodel/", 
         mallet_path = "/usr/local/bin/mallet",
         num_topics = 10)
 lda.train(docs[0:10], ids[0:10])
