@@ -24,6 +24,9 @@ var/
 # vim swap files
 *.swp
 
+# output data
+data
+
 # sample data
 sample_data
 

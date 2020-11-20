@@ -26,7 +26,8 @@ class Mongo:
     def get_topic_model_data(self):
         res = list(self.db["docs.lemma"].find({}))
         docs = [" ".join(r["lemma"].split('\t')) for r in res]
-        return docs
+        ids = [r["_id"] for r in res]
+        return (ids, docs)
 
     def write_topic_model_data(self, model):
         doctopics = model.load_document_topics()
@@ -59,17 +60,16 @@ class Mongo:
         self.db['terms.topics'].remove({})
         self.db['terms.topics'].insert_many(docs)
 
-        """
-        Create topics
-         proportion: 0.0294,
-         x: -0.13,
-         y: 0.115,
-         authors: [...],
-         locations: [...],
-         keywords: [...],
-         publishers: [...],
-         topDocs: [1, 5, 345, 657, 34503]
-        """
+        # Create topics
+        # proportion: 0.0294,
+        # x: -0.13,
+        # y: 0.115,
+        # authors: [...],
+        # locations: [...],
+        # keywords: [...],
+        # publishers: [...],
+        # topDocs: [1, 5, 345, 657, 34503]
+
          #proporitons = compute_proportions(doc_topics, doc_lens)
          #x,y = compute_coordinates(topic_terms)
          # meta is calculated as such:
