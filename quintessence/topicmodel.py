@@ -40,7 +40,7 @@ class TopicModel:
 
         tdm = corpus2csc(self.corpus)
         self.topicterms = self.model.get_topics()
-        self.doctopics = self.model.load_document_topics()
+        self.doctopics = corpus2csc([i for i in self.model.load_document_topics()]).T
         self.doc_lens = np.asarray(tdm.sum(axis=0))
         self.fnames = fnames
         self.vocab = [t for t in self.dictionary.itervalues()]
@@ -61,7 +61,7 @@ class TopicModel:
         """
         self.model = LdaMallet.load(self.model_odir + "/mallet.model")
         self.topicterms = self.model.get_topics()
-        self.doctopics = self.model.load_document_topics()
+        self.doctopics = corpus2csc([i for i in self.model.load_document_topics()]).T
 
         # need corpus
         with open(self.model_odir + "/corpus.pickle", 'rb') as cp:
