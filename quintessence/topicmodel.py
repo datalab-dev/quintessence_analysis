@@ -1,4 +1,5 @@
 import os
+import pickle
 
 from gensim.models.wrappers import LdaMallet
 from gensim.corpora import Dictionary
@@ -33,24 +34,46 @@ class TopicModel:
         self.corpus = [self.dictionary.doc2bow(doc) for doc in docs]
 
         # train model
-        model = LdaMallet(self.mallet_path,
+        self.model = LdaMallet(self.mallet_path,
                 corpus=self.corpus, prefix = self.model_odir,
                           num_topics=self.num_topics, id2word=self.dictionary)
 
         tdm = corpus2csc(self.corpus)
-        self.topicterms = model.get_topics()
-        self.doctopics = model.load_document_topics()
+        self.topicterms = self.model.get_topics()
+        self.doctopics = self.model.load_document_topics()
         self.doc_lens = np.asarray(tdm.sum(axis=0))
         self.fnames = fnames
         self.vocab = [t for t in self.dictionary.itervalues()]
         self.word_counts = np.asarray(tdm.sum(axis=1))
 
-        # save model, dictionary, corpus
-        self.model = model
-        model.save(self.model_odir) 
+        # save model, dictionary, corpus, fnames
+        self.dictionary.save_as_text(self.model_odir + "/dict.txt") 
+        with open(self.model_odir + "/corpus.pickle", "wb") as cp:
+            pickle.dump(self.corpus, cp)
+        with open(self.model_odir + "/fnames.pickle", "wb") as fp:
+            pickle.dump(self.fnames, fp)
+        self.model.save(self.model_odir + "/mallet.model") 
+
 
     def load_model(self):
         """
         Load a previously saved model and the other files that should be in the odir
         """
-        self.model = LdaMallet.load(self.model_path)
+        self.model = LdaMallet.load(self.model_odir + "/mallet.model")
+        self.topicterms = self.model.get_topics()
+        self.doctopics = self.model.load_document_topics()
+
+        # need corpus
+        with open(self.model_odir + "/corpus.pickle", 'rb') as cp:
+            self.corpus = pickle.load(cp)
+        tdm = corpus2csc(self.corpus)
+        self.doc_lens = np.asarray(tdm.sum(axis=0))
+        self.word_counts = np.asarray(tdm.sum(axis=1))
+
+        # need dictionary
+        self.dictionary = Dictionary.load_from_text(self.model_odir + "/dict.txt")
+        self.vocab = [t for t in self.dictionary.itervalues()]
+
+        # need fnames
+        with open(self.model_odir +  "/fnames.pickle", 'rb') as fp:
+            self.fnames = pickle.load(fp)
