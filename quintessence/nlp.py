@@ -1,6 +1,10 @@
 import re
+
+import numpy as np
 import nltk
 from nltk.corpus import stopwords
+from scipy.spatial.distance import jensenshannon
+from sklearn.manifold import MDS
 
 def normalize_text(text,
         lower = True,
@@ -23,8 +27,17 @@ def normalize_text(text,
     text = " ".join(text.split())
     return text
 
-def compute_proportions(doc_topics, doc_lens):
-    return
+def compute_proportions(doctopics, doc_lens):
+    weighted = np.multiply(doctopics.todense(), doc_lens)
+    return np.sum(weighted, axis = 1) / np.sum(weighted).A
 
-def compute_coordinates(topic_terms):
-    return
+def compute_coordinates(topicterms):
+
+    distances = np.zeros(shape=(topicterms.shape[0], topicterms.shape[0]))
+
+    for i in range(topicterms.shape[0]):
+        for j in range(i + 1, topicterms.shape[0]):
+            distances[i][j] = jensenshannon(topicterms[i], topicterms[j])
+    distances = distances + distances.T
+
+    return MDS(n_components=2, dissimilarity = "precomputed").fit_transform(distances)
