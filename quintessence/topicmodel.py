@@ -2,7 +2,8 @@ import os
 
 from gensim.models.wrappers import LdaMallet
 from gensim.corpora import Dictionary
-grom gensim.matutils import corpus2csc
+from gensim.matutils import corpus2csc
+import numpy as np
 
 class TopicModel:
     def __init__(self, model_odir, mallet_path=None, num_topics=None):
@@ -29,23 +30,24 @@ class TopicModel:
         docs = [doc.split() for doc in docs]
         self.dictionary = Dictionary(docs)
         self.dictionary.filter_extremes(no_below=int(0.01 * len(docs)), no_above=0.8) # prune
-        self.corpus = [dictionary.doc2bow(doc) for doc in docs]
+        self.corpus = [self.dictionary.doc2bow(doc) for doc in docs]
 
         # train model
-        model = LdaMallet(self.model_odir + "mallet.model", 
-                corpus=corpus, prefix = model_odir,
-                          num_topics=self.num_topics, id2word=dictionary)
+        model = LdaMallet(self.mallet_path,
+                corpus=self.corpus, prefix = self.model_odir,
+                          num_topics=self.num_topics, id2word=self.dictionary)
 
+        tdm = corpus2csc(self.corpus)
         self.topicterms = model.get_topics()
-        self.doctopics = 
-        self.doc_lens = 
+        self.doctopics = model.load_document_topics()
+        self.doc_lens = np.asarray(tdm.sum(axis=0))
         self.fnames = fnames
-        self.vocab = 
-        self.word_counts = 
+        self.vocab = [t for t in self.dictionary.itervalues()]
+        self.word_counts = np.asarray(tdm.sum(axis=1))
 
         # save model, dictionary, corpus
         self.model = model
-        model.save(self.model_path)
+        model.save(self.model_odir) 
 
     def load_model(self):
         """

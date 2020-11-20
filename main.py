@@ -14,12 +14,12 @@ con = Mongo("./mongo_credentials.json")
 
 # Run Topic Model + Write to DB
 print("Running Topic Model")
-docs = con.get_topic_model_data()
+ids, docs = con.get_topic_model_data()
 docs = [normalize_text(doc) for doc in docs]
 lda = TopicModel("./data/topicmodel/mallet.model", 
         mallet_path = "/usr/local/bin/mallet",
         num_topics = 10)
-lda.train(docs)
+lda.train(docs[0:10], ids[0:10])
 # write to db
 # free model
 
