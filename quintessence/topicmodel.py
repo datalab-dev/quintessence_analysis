@@ -8,6 +8,22 @@ import numpy as np
 
 class TopicModel:
     def __init__(self, model_odir, mallet_path=None, num_topics=None):
+        """
+        Initialize a TopicModel class, either to use for training models or to load in a model trained by this class.
+
+        Currently uses Gensim's wrapper of LdaMallet as the lda implementation.
+        Provides methods for - training a model, loading in a model.
+        In addition to the model object output from gensim, this class also saves
+        - information about the training (num_topics)
+        - the gensim corpus object that was modeled
+        - dictionary object for the corpus
+        - qids of the documents
+        - word_counts for the documents (at the time they are modeled, i.e after preprocessing)
+        - vocab, the list of words
+        - topicterms matrix
+        - doctopics matrix
+
+        """
         self.model_odir = os.path.abspath(model_odir) # dirname for mallet model, temp files, and dictionary ...
         self.mallet_path = mallet_path # ex: '~/mallet-2.0.8/bin/mallet'
         self.num_topics = num_topics
@@ -27,6 +43,7 @@ class TopicModel:
 
         Expects docs to be a list of normalized strings where each string is a unique document
         fnames should map to docs
+        Saves all outputs as properties of the class instance, as well as to files in self.model_odir path
         """
         docs = [doc.split() for doc in docs]
         self.dictionary = Dictionary(docs)
@@ -58,6 +75,8 @@ class TopicModel:
     def load_model(self):
         """
         Load a previously saved model and the other files that should be in the odir
+        updates all the class instance properties (vocab, doctopics ...)
+        Does not require a mallet path
         """
         self.model = LdaMallet.load(self.model_odir + "/mallet.model")
         self.topicterms = self.model.get_topics() + 0.01
