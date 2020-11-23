@@ -8,7 +8,7 @@ import numpy as np
 
 class TopicModel:
     def __init__(self, model_odir, mallet_path=None, num_topics=None):
-        self.model_odir = model_odir # dirname for mallet model, temp files, and dictionary ...
+        self.model_odir = os.path.abspath(model_odir) # dirname for mallet model, temp files, and dictionary ...
         self.mallet_path = mallet_path # ex: '~/mallet-2.0.8/bin/mallet'
         self.num_topics = num_topics
         self.model = None # LdaMallet obj
