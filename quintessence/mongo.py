@@ -40,6 +40,11 @@ class Mongo:
         doctopics = lda.doctopics.todense().A
 
         # Create docs.topics
+        # _id: 0,
+        # topics: [
+        #    {"topicId": 0, "probability": 0.05},
+        #    {"topicId": 1, "probability": 0.08}, ...
+        #    ]
         docs = []
         for qid, row in enumerate(doctopics):
             topics = []
@@ -51,12 +56,16 @@ class Mongo:
         self.db['docs.topics'].insert_many(docs)
 
         # topic.terms
+        # topicId: 0,
+        # terms: [
+        #    {"term": "abate", "probability": 0.01}, ...
+        # ]
         docs = []
         for topicid, row in enumerate(topicterms):
             terms = []
             for termindex, probability in enumerate(row):
-                term = lda.corpus.id2term[termindex]
-                terms.append[{'term': term, 'probability': probability})
+                term = lda.dictionary.id2token[termindex]
+                terms.append({'term': term, 'probability': probability})
             docs.append({'topicId': topicid, 'terms': terms})
 
         self.db['topics.terms'].remove({})
