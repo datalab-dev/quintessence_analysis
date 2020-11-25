@@ -28,11 +28,12 @@ def normalize_text(text,
     return text
 
 def compute_proportions(doctopics, doc_lens):
-    """ Compute x and y coordinates for topics using multidimensional scaling of topic terms matrix """
+    """ Compute corpus wide topic proportions """
     weighted = np.multiply(doctopics.todense(), doc_lens)
     return np.sum(weighted, axis = 1) / np.sum(weighted).A
 
 def compute_coordinates(topicterms):
+    """ Compute x and y coordinates for topics using multidimensional scaling of topic terms matrix """
 
     distances = np.zeros(shape=(topicterms.shape[0], topicterms.shape[0]))
 
@@ -50,5 +51,14 @@ def compute_top_docs (doctopics):
     return topdocs
 
 
-def compute_top(doctopics, metacol): 
-    """ 
+def group_by_proportions(doctopics, metacol): 
+    """  for each metadata grouping, compute the mean nonzero topic proportion 
+    This is slightly different then the compute proportions function becuase it doesn't take into account the document lengths, treating each document as equal
+    """
+    # TODO:
+    # get unique values in metacol
+    # get inds for each unique value
+    # for each set of inds, get corresponding doctopic rows
+    # for those rows compute mean topic proportions (excluding zero's?)
+    pass
+
