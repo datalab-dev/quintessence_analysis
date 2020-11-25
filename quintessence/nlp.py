@@ -28,6 +28,7 @@ def normalize_text(text,
     return text
 
 def compute_proportions(doctopics, doc_lens):
+    """ Compute x and y coordinates for topics using multidimensional scaling of topic terms matrix """
     weighted = np.multiply(doctopics.todense(), doc_lens)
     return np.sum(weighted, axis = 1) / np.sum(weighted).A
 
@@ -41,3 +42,13 @@ def compute_coordinates(topicterms):
     distances = distances + distances.T
 
     return MDS(n_components=2, dissimilarity = "precomputed").fit_transform(distances)
+
+def compute_top_docs (doctopics):
+    """ input is sparse matrix of doc topics, returns ndarray rows are topic values are doc ids """
+    doctopics = doctopics.todense().A
+    topdocs = doctopics.argsort(axis=1)[::-1].T
+    return topdocs
+
+
+def compute_top(doctopics, metacol): 
+    """ 
