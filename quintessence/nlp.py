@@ -52,9 +52,12 @@ def compute_top_docs (doctopics):
 
 def get_subsets (metacol):
     """   """
+    pass
 
 
-def group_by_proportions(doctopics, metacol): 
+def subset_word_counts(subsets):
+    pass
+def subset_proportions(subsets):
     """  for each metadata grouping, compute the mean nonzero topic proportion 
     This is slightly different then the compute proportions function becuase it doesn't take into account the document lengths, treating each document as equal
     """
