@@ -50,6 +50,9 @@ def compute_top_docs (doctopics):
     topdocs = doctopics.argsort(axis=1)[::-1].T
     return topdocs
 
+def get_subsets (metacol):
+    """   """
+
 
 def group_by_proportions(doctopics, metacol): 
     """  for each metadata grouping, compute the mean nonzero topic proportion 
@@ -57,6 +60,8 @@ def group_by_proportions(doctopics, metacol):
     """
     # TODO:
     # get unique values in metacol
+    values = metacol.unique_values()
+
     # get inds for each unique value
     # for each set of inds, get corresponding doctopic rows
     # for those rows compute mean topic proportions (excluding zero's?)
