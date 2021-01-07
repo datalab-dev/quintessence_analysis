@@ -6,9 +6,12 @@ from pymongo import MongoClient
 from gensim.models.wrappers import LdaMallet
 
 from quintessence.topicmodel import TopicModel
+from quintessence.nlp import compute_proportions
+from quintessence.nlp import compute_coordinates
 
 class Mongo:
     def __init__(self, credentials_path):
+        """ create a connection to the mongo database """
         with open(credentials_path, 'r') as f:
             credentials = json.load(f)
             url = f"mongodb://{credentials['host']}:{credentials['port']}"
@@ -22,17 +25,27 @@ class Mongo:
         self.db = client[credentials['database']]
 
     def get_metadata(self):
+        """ returns full list from docs.meta """
         meta = list(self.db["docs.meta"].find({}))
         return meta
 
     def get_topic_model_data(self):
+        """ return ids, and strings of lemmatized documents """
         res = list(self.db["docs.lemma"].find({}))
         docs = [" ".join(r["lemma"].split('\t')) for r in res]
         ids = [r["_id"] for r in res]
         return (ids, docs)
 
     def write_topic_model_data(self, lda):
-
+        """
+        Given a trained TopicModel class, create and write all the necessary 
+        data to the mongo database.
+    
+        tables that are overwritten (deleted then created)
+            - doc.topics
+            - topic.terms
+            - topics
+        """
 
         topicterms = lda.topicterms
         topicterms = np.apply_along_axis(lambda x: x / x.sum(), 1, topicterms) # normalize and smooth document topics
@@ -81,8 +94,8 @@ class Mongo:
         # publishers: [...],
         # topDocs: [1, 5, 345, 657, 34503]
 
-         # proportions = compute_proportions(doc_topics, doc_lens)
-         # coordinates = compute_coordinates(topic_terms)
+         proportions = compute_proportions(doc_topics, doc_lens)
+         coordinates = compute_coordinates(topic_terms)
          # topdocs = compute_top_docs(doc_topics)
          # authors = compute_top(doc_topics, "authors")
          # keywords = compute_top(doc_topics, "keywords")
