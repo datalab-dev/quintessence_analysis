@@ -6,8 +6,8 @@ from pymongo import MongoClient
 from gensim.models.wrappers import LdaMallet
 
 from quintessence.topicmodel import TopicModel
-from quintessence.nlp import compute_proportions
-from quintessence.nlp import compute_coordinates
+from quintessence.parse_lda import compute_proportions
+from quintessence.parse_lda import compute_coordinates
 from quintessence.parse_lda import create_doc_topics
 
 class Mongo:
@@ -56,25 +56,6 @@ class Mongo:
         self.db['topics.terms'].insert_many(
                 create_topic_terms(lda.topicterms, lda.dictionary))
 
-        # Create topics
-        # topicId: 0,
-        # proportion: 0.0294,
-        # x: -0.13,
-        # y: 0.115,
-        # authors: [...],
-        # locations: [...],
-        # keywords: [...],
-        # publishers: [...],
-        # topDocs: [1, 5, 345, 657, 34503]
-
-        # proportions = compute_proportions(doc_topics, doc_lens)
-        # coordinates = compute_coordinates(topic_terms)
-        # topdocs = compute_top_docs(doc_topics)
-         # authors = compute_top(doc_topics, "authors")
-         # keywords = compute_top(doc_topics, "keywords")
-         # locations = compute_top(doc_topics, "locations")
-         # publishers = compute_top(doc_topics, "publishers")
-         # meta is calculated as such:
-         # filter docs based on meta
-         # get mean of nonzeros of topic proportion for each subset for each topic
-#         meta = pd.DataFrame.from_records(self.get_metadata())
+        # topics
+        self.db['topics'].remove({})
+        self.db['topics'].insert_many(create_topics(lda))
