@@ -44,7 +44,7 @@ def create_topic_terms (topicterms, dictionary):
     for topicid, row in enumerate(topicterms):
         terms = []
         for termindex, probability in enumerate(row):
-            term = lda.dictionary.id2token[termindex]
+            term = dictionary.id2token[termindex]
             terms.append({'term': term, 'probability': probability})
         docs.append({'topicId': topicid, 'terms': terms})
     return docs
