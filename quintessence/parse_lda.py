@@ -50,6 +50,26 @@ def create_topic_terms (topicterms, dictionary):
     return docs
 
 def create_topics (lda):
+    """
+    Create topics data for mongo table
+
+    Create topics
+    topicId: 0,
+    proportion: 0.0294,
+    x: -0.13,
+    y: 0.115,
+    authors: [...],
+    locations: [...],
+    keywords: [...],
+    publishers: [...],
+    topDocs: [1, 5, 345, 657, 34503]
+
+    returns list of dicts
+    """
+
+    proportions = compute_proportions(doc_topics, doc_lens)
+    coordinates = compute_coordinates(topic_terms)
+    topdocs = compute_top_docs(doc_topics)
     pass
 
 def compute_proportions(doctopics, doc_lens):
@@ -70,9 +90,9 @@ def compute_coordinates(topicterms):
     return MDS(n_components=2, dissimilarity = "precomputed").fit_transform(distances)
 
 def compute_top_docs (doctopics):
-    """ input is sparse matrix of doc topics, returns ndarray rows are topic values are doc ids """
+    """ returns ndarray rows are topic values are doc ids """
     doctopics = doctopics.todense().A
-    topdocs = doctopics.argsort(axis=1)[::-1].T
+    topdocs = doctopics.argsort(axis=0)[::-1]
     return topdocs
 
 def subset_proportions(subsets):
