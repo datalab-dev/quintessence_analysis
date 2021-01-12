@@ -8,6 +8,7 @@ from gensim.models.wrappers import LdaMallet
 from quintessence.topicmodel import TopicModel
 from quintessence.nlp import compute_proportions
 from quintessence.nlp import compute_coordinates
+from quintessence.parse_lda import create_doc_topics
 
 class Mongo:
     def __init__(self, credentials_path):
@@ -46,43 +47,14 @@ class Mongo:
             - topic.terms
             - topics
         """
-
-        topicterms = lda.topicterms
-        topicterms = np.apply_along_axis(lambda x: x / x.sum(), 1, topicterms) # normalize and smooth document topics
-        termstopics = topicterms.T
-        doctopics = lda.doctopics.todense().A
-
-        # Create docs.topics
-        # _id: 0,
-        # topics: [
-        #    {"topicId": 0, "probability": 0.05},
-        #    {"topicId": 1, "probability": 0.08}, ...
-        #    ]
-        docs = []
-        for qid, row in enumerate(doctopics):
-            topics = []
-            for topic, probability in enumerate(row):
-                topics.append({'topicId': topic, 'probability': probability})
-            docs.append({'_id': qid, 'topics': topics})
-
+        # doc.topics
         self.db['docs.topics'].remove({})
-        self.db['docs.topics'].insert_many(docs)
+        self.db['docs.topics'].insert_many(create_doc_topics(lda.doctopics))
 
         # topic.terms
-        # topicId: 0,
-        # terms: [
-        #    {"term": "abate", "probability": 0.01}, ...
-        # ]
-        docs = []
-        for topicid, row in enumerate(topicterms):
-            terms = []
-            for termindex, probability in enumerate(row):
-                term = lda.dictionary.id2token[termindex]
-                terms.append({'term': term, 'probability': probability})
-            docs.append({'topicId': topicid, 'terms': terms})
-
         self.db['topics.terms'].remove({})
-        self.db['topics.terms'].insert_many(docs)
+        self.db['topics.terms'].insert_many(
+                create_topic_terms(lda.topicterms, lda.dictionary))
 
         # Create topics
         # topicId: 0,
@@ -106,7 +78,3 @@ class Mongo:
          # filter docs based on meta
          # get mean of nonzeros of topic proportion for each subset for each topic
 #         meta = pd.DataFrame.from_records(self.get_metadata())
-
-
-
-

@@ -3,10 +3,51 @@ from scipy.spatial.distance import jensenshannon
 from sklearn.manifold import MDS
 
 def create_doc_topics (doctopics):
-    pass
+    """
+    Create docs.topics data for mongo table
 
-def create_topic_terms (topicterms):
-    pass
+    doc.topics
+    _id: 0,
+    topics: [
+       {"topicId": 0, "probability": 0.05},
+       {"topicId": 1, "probability": 0.08}, ...
+      ]
+
+    returns list of dicts
+    """
+    doctopics = doctopics.todense().A
+    docs = []
+    for qid, row in enumerate(doctopics):
+        topics = []
+        for topic, probability in enumerate(row):
+            topics.append({'topicId': topic, 'probability': probability})
+        docs.append({'_id': qid, 'topics': topics})
+    return docs
+
+def create_topic_terms (topicterms, dictionary):
+    """
+    Create topic.terms data for mongo table
+
+    topic.terms
+    topicId: 0,
+    terms: [
+        {"term": "abate", "probability": 0.01},
+        ...
+    ]
+
+    returns list of dicts
+    """
+
+    # normalize and smooth topicterms
+    topicterms = np.apply_along_axis(lambda x: x / x.sum(), 1, topicterms)
+    docs = []
+    for topicid, row in enumerate(topicterms):
+        terms = []
+        for termindex, probability in enumerate(row):
+            term = lda.dictionary.id2token[termindex]
+            terms.append({'term': term, 'probability': probability})
+        docs.append({'topicId': topicid, 'terms': terms})
+    return docs
 
 def create_topics (lda):
     pass
