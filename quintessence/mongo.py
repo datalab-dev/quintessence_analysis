@@ -85,6 +85,7 @@ class Mongo:
         self.db['topics.terms'].insert_many(docs)
 
         # Create topics
+        # topicId: 0,
         # proportion: 0.0294,
         # x: -0.13,
         # y: 0.115,
@@ -94,9 +95,9 @@ class Mongo:
         # publishers: [...],
         # topDocs: [1, 5, 345, 657, 34503]
 
-         proportions = compute_proportions(doc_topics, doc_lens)
-         coordinates = compute_coordinates(topic_terms)
-         # topdocs = compute_top_docs(doc_topics)
+        # proportions = compute_proportions(doc_topics, doc_lens)
+        # coordinates = compute_coordinates(topic_terms)
+        # topdocs = compute_top_docs(doc_topics)
          # authors = compute_top(doc_topics, "authors")
          # keywords = compute_top(doc_topics, "keywords")
          # locations = compute_top(doc_topics, "locations")
