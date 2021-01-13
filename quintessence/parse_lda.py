@@ -74,37 +74,63 @@ def create_topics (lda):
 
 def compute_proportions(doctopics, doc_lens):
     """ Compute corpus wide topic proportions """
-    weighted = np.multiply(doctopics.todense(), doc_lens)
+    weighted = np.multiply(doctopics.todense(), doc_lens.T)
     return np.sum(weighted, axis = 1) / np.sum(weighted)
 
 def compute_coordinates(topicterms):
-    """ Compute x and y coordinates for topics using multidimensional scaling of topic terms matrix """
+    """ 
+    Compute x and y coordinates for topics using multidimensional scaling of 
+    topic terms matrix 
+    """
 
-    distances = np.zeros(shape=(topicterms.shape[0], topicterms.shape[0]))
+    dists = np.zeros(shape=(topicterms.shape[0], topicterms.shape[0]))
 
     for i in range(topicterms.shape[0]):
         for j in range(i + 1, topicterms.shape[0]):
-            distances[i][j] = jensenshannon(topicterms[i], topicterms[j])
-    distances = distances + distances.T
+            dists[i][j] = jensenshannon(topicterms[i], topicterms[j])
+    dists = dists + dists.T
 
-    return MDS(n_components=2, dissimilarity = "precomputed").fit_transform(distances)
+    return MDS(n_components=2, 
+            dissimilarity = "precomputed").fit_transform(dists)
 
-def compute_top_docs (doctopics):
+def compute_top_docs(doctopics):
     """ returns ndarray rows are topic values are doc ids """
     doctopics = doctopics.todense().A
     topdocs = doctopics.argsort(axis=0)[::-1]
     return topdocs
 
-def subset_proportions(subsets):
-    """  for each metadata grouping, compute the mean nonzero topic proportion 
-    This is slightly different then the compute proportions function becuase it doesn't take into account the document lengths, treating each document as equal
+def list_group_by(series):
+    """ behaves like df.groupby("Date").indices but works on list """
+    values = series.explode()
+    inds = {}
+    for index,k in values.items():
+        if k in inds.keys(): inds[k].append(index)
+        else: inds[k] = [index]
+
+    # convert to ndarrays to match groupby return 
+    for k,v in inds.items():
+        inds[k] = np.array(v)
+    return inds
+
+def subset_proportions(meta, doctopics, doc_lens):
+    """  
+    for each metadata grouping, compute the mean nonzero topic proportion 
+    return ndarray rows are meta fields (author1, author2, loc1, ...),
+    cols are topics, values are mean nonzero proportion
+
+    relevant fields are authors, locations, keywords, publishers
     """
-    # TODO:
-    # get unique values in metacol
-    values = metacol.unique_values()
+
+    # multiply doc topics by doc lens (element wise)
+    weighted = np.multiply(doctopics.todense(), doc_lens.T)
 
     # get inds for each unique value
-    # for each set of inds, get corresponding doctopic rows
-    # for those rows compute mean topic proportions (excluding zero's?)
+    authors_inds = list_group_by(meta["Author"])
+    locations_inds = meta.groupby("Location").indices
+    keywords_inds = list_group_by(meta["Keywords"])
+    publisher_inds = meta.groupby("Publisher").indices
+
+    # compute mean nonzero proportion foreach subset
+
     pass
 
