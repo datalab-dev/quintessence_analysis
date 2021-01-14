@@ -112,6 +112,24 @@ def list_group_by(series):
         inds[k] = np.array(v)
     return inds
 
+def compute_topic_proportion (group_indices, weighted):
+    """
+    For the given group indices, compute proportion for each 
+    unique entry in the subset (e.g if subset = author, then each entry
+    is a unique author
+
+    returns pandas dataframe, rows are unique values, columns are topics,
+    values are mean nonzero proportion
+    """
+    names = list(group_indices.keys())
+    res = np.zeros((len(names), weighted.shape[1]))
+    i = 0
+    for n,indices in group_indices.items():
+        res[i] = np.sum(weighted[indices,], axis=1) / np.sum(weighted[indices,])
+        i += 1
+
+    return pd.DataFrame(res, index=names)
+
 def subset_proportions(meta, doctopics, doc_lens):
     """  
     for each metadata grouping, compute the mean nonzero topic proportion 
@@ -120,7 +138,6 @@ def subset_proportions(meta, doctopics, doc_lens):
 
     relevant fields are authors, locations, keywords, publishers
     """
-
     # multiply doc topics by doc lens (element wise)
     weighted = np.multiply(doctopics.todense(), doc_lens.T)
 
@@ -131,6 +148,11 @@ def subset_proportions(meta, doctopics, doc_lens):
     publisher_inds = meta.groupby("Publisher").indices
 
     # compute mean nonzero proportion foreach subset
+    # authors
+    authors = np.zeros((nauthors, ntopics))
+    for author,qids in authors_inds:
+        proportions = weighted[qids,]/weighted[qids,].sum()
+
 
     pass
 
