@@ -26,9 +26,19 @@ class Mongo:
         self.db = client[credentials['database']]
 
     def get_metadata(self):
-        """ returns full list from docs.meta """
-        meta = list(self.db["docs.meta"].find({}))
+        """ returns dataframe version of metadata from database """
+        meta = pd.DataFrame.from_records(list(self.db["docs.meta"].find({})))
         return meta
+
+    def get_embeddings_data(self):
+        """ returns list of sentences (list of words) """
+        res = list(self.db["docs.std"].find({}))
+        docs = [" ".join(r["std"].split('\t')) for r in res]
+        ids = [r["_id"] for r in res]
+
+        sentences = Parallel(n_jobs=4)(
+                delayed(tokenize)(d for d in docs))
+        return sentences
 
     def get_topic_model_data(self):
         """ return ids, and strings of lemmatized documents """
