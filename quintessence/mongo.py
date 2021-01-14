@@ -6,9 +6,9 @@ from pymongo import MongoClient
 from gensim.models.wrappers import LdaMallet
 
 from quintessence.topicmodel import TopicModel
-from quintessence.parse_lda import compute_proportions
-from quintessence.parse_lda import compute_coordinates
 from quintessence.parse_lda import create_doc_topics
+from quintessence.parse_lda import create_topic_terms
+from quintessence.parse_lda import create_topics
 
 class Mongo:
     def __init__(self, credentials_path):
@@ -47,6 +47,8 @@ class Mongo:
             - topic.terms
             - topics
         """
+
+        meta = pd.DataFrame.from_records(self.get_metadata())
         # doc.topics
         self.db['docs.topics'].remove({})
         self.db['docs.topics'].insert_many(create_doc_topics(lda.doctopics))
@@ -58,4 +60,6 @@ class Mongo:
 
         # topics
         self.db['topics'].remove({})
-        self.db['topics'].insert_many(create_topics(lda))
+        self.db['topics'].insert_many(create_topics(meta,
+            lda.doctopics, 
+            lda.doc_lens, lda.topicterms))

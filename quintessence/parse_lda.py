@@ -1,3 +1,4 @@
+import pandas as pd
 import numpy as np
 from scipy.spatial.distance import jensenshannon
 from sklearn.manifold import MDS
@@ -79,16 +80,17 @@ def create_topics (meta, doctopics, doc_lens, topicterms):
     docs = []
     for i in range(doctopics.shape[1]):
         docs.append({'topicId': i,
-            'proportion': proportions[0][i],
-            'x': coordinates[i][0],
-            'y': coordinates[i][1],
+            'proportion': float(proportions[0][i]),
+            'x': float(coordinates[i][0]),
+            'y': float(coordinates[i][1]),
             'topAuthors':  list(
                 authors[i].sort_values(ascending=False)[0:10].index),
             'topLocations': list(
                 locations[i].sort_values(ascending=False)[0:10].index),
             'topKeywords': list(
                 keywords[i].sort_values(ascending=False)[0:10].index),
-            'topDocs': list(topdocs[0:10, i])})
+            'topDocs': [int(d) for d in topdocs[0:10, i]]})
+    return docs
 
 
 def compute_proportions(doctopics, doc_lens):
