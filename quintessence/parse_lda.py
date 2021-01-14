@@ -49,7 +49,7 @@ def create_topic_terms (topicterms, dictionary):
         docs.append({'topicId': topicid, 'terms': terms})
     return docs
 
-def create_topics (lda):
+def create_topics (meta, doctopics, doc_lens, topicterms):
     """
     Create topics data for mongo table
 
@@ -67,15 +67,34 @@ def create_topics (lda):
     returns list of dicts
     """
 
-    proportions = compute_proportions(doc_topics, doc_lens)
-    coordinates = compute_coordinates(topic_terms)
-    topdocs = compute_top_docs(doc_topics)
-    pass
+    proportions = compute_proportions(doctopics, doc_lens)
+    coordinates = compute_coordinates(topicterms)
+    topdocs = compute_top_docs(doctopics)
+    subsets = subset_proportions(meta, doctopics, doc_lens)
+    authors = subsets[0]
+    locations = subsets[1]
+    keywords = subsets[2]
+
+    # foreach topic
+    docs = []
+    for i in range(doctopics.shape[1]):
+        docs.append({'topicId': i,
+            'proportion': proportions[0][i],
+            'x': coordinates[i][0],
+            'y': coordinates[i][1],
+            'topAuthors':  list(
+                authors[i].sort_values(ascending=False)[0:10].index),
+            'topLocations': list(
+                locations[i].sort_values(ascending=False)[0:10].index),
+            'topKeywords': list(
+                keywords[i].sort_values(ascending=False)[0:10].index),
+            'topDocs': list(topdocs[0:10, i])})
+
 
 def compute_proportions(doctopics, doc_lens):
     """ Compute corpus wide topic proportions """
     weighted = np.multiply(doctopics.todense(), doc_lens.T)
-    return np.sum(weighted, axis = 1) / np.sum(weighted)
+    return np.array(np.sum(weighted, axis = 0) / np.sum(weighted))
 
 def compute_coordinates(topicterms):
     """ 
@@ -125,7 +144,7 @@ def compute_topic_proportion (group_indices, weighted):
     res = np.zeros((len(names), weighted.shape[1]))
     i = 0
     for n,indices in group_indices.items():
-        res[i] = np.sum(weighted[indices,], axis=1) / np.sum(weighted[indices,])
+        res[i] = np.sum(weighted[indices,], axis=0) / np.sum(weighted[indices,])
         i += 1
 
     return pd.DataFrame(res, index=names)
@@ -145,14 +164,11 @@ def subset_proportions(meta, doctopics, doc_lens):
     authors_inds = list_group_by(meta["Author"])
     locations_inds = meta.groupby("Location").indices
     keywords_inds = list_group_by(meta["Keywords"])
-    publisher_inds = meta.groupby("Publisher").indices
+    #publisher_inds = meta.groupby("Publisher").indices
 
     # compute mean nonzero proportion foreach subset
-    # authors
-    authors = np.zeros((nauthors, ntopics))
-    for author,qids in authors_inds:
-        proportions = weighted[qids,]/weighted[qids,].sum()
-
-
-    pass
-
+    authors = compute_topic_proportion(authors_inds, weighted)
+    locations = compute_topic_proportion(locations_inds, weighted)
+    keywords = compute_topic_proportion(keywords_inds, weighted)
+    #publisher_inds = compute_topic_proportion(publisher_inds, weighted)
+    return [authors, locations, keywords]
