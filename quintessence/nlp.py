@@ -18,17 +18,14 @@ def normalize_text(text,
     if lower: text = text.lower()
     if punct: text = re.sub(PUNCT_RE, '', text)
     if digits: text = re.sub(r'\d+', '', text)
-    text = ' '.join(x for x in text.split() if x not in stopwords and len(x) > minlen)
+    text = ' '.join(
+            x for x in text.split() if x not in stopwords and len(x) > minlen)
 
     # handle excess whitespace from removed terms
     text = " ".join(text.split())
     return text
 
-def get_subsets (metacol):
-    """   """
-    pass
-
-
-def subset_word_counts(subsets):
-    pass
-
+def sentence_tokenize(text):
+    """ Split a text string into a list of sentences (list of words) """
+    sentences = nltk.sent_tokenize(text)
+    return sentences
