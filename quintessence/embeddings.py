@@ -13,8 +13,8 @@ import pymongo
 # the output
 
 class Embeddings:
-    def __init__(self, model_odir, sg=1, window=15, size=250, workers=4):
-        self.model_odir = model_odir
+    def __init__(self, model_fpath, sg=1, window=15, size=250, workers=4):
+        self.model_fpath = model_fpath
         self.sg = sg
         self.window = window
         self.size = size
@@ -39,11 +39,11 @@ class Embeddings:
         self.model = model
 
         print(f"trained model in {(time.time() - start) / 60} minutes")
-        model.save(self.model_odir + "/" + "word2vec.model")
+        model.save(self.model_fpath)
 
     def load_model(self):
         """
         Load model from npy file.
         """
-        pass
+        self.model = gensim.models.Word2Vec.load(self.model_fpath)
 
