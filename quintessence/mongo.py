@@ -3,14 +3,10 @@ import json
 import pandas as pd
 import numpy as np
 from pymongo import MongoClient
-from gensim.models.wrappers import LdaMallet
-from joblib import Parallel
-from joblib import delayed
 
 from quintessence.parse_lda import create_doc_topics
 from quintessence.parse_lda import create_topic_terms
 from quintessence.parse_lda import create_topics
-from quintessence.topicmodel import TopicModel
 
 class Mongo:
     def __init__(self, credentials_path):
@@ -37,8 +33,12 @@ class Mongo:
         res = list(self.db["docs.std"].find({}))
         docs = [" ".join(r["std"].split('\t')) for r in res]
         ids = [r["_id"] for r in res]
-
         return ids,docs
+
+    def write_embeddings_data(self):
+        """  """
+        # TODO:
+        pass
 
     def get_topic_model_data(self):
         """ return ids, and strings of lemmatized documents """
