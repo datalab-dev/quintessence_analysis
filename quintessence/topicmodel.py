@@ -37,14 +37,15 @@ class TopicModel:
         self.topicterms = None
         self.doctopics = None
 
-    def train(self, docs, fnames):
+    def train(self, docs):
         """
         Train topic model using mallet.
 
-        Expects docs to be a list of normalized strings where each string is a unique document
-        fnames should map to docs
+        Docs is pandas series, index is ids, and values are normalized strings
+
         Saves all outputs as properties of the class instance, as well as to files in self.model_odir path
         """
+        self.fnames = list(docs.index)
         docs = [doc.split() for doc in docs]
         self.dictionary = Dictionary(docs)
         self.dictionary.filter_extremes(no_below=int(0.01 * len(docs)), no_above=0.8) # prune
@@ -59,7 +60,6 @@ class TopicModel:
         self.topicterms = self.model.get_topics() + 0.01 # mallet default beta
         self.doctopics = corpus2csc([i for i in self.model.load_document_topics()]).T
         self.doc_lens = np.asarray(tdm.sum(axis=0))
-        self.fnames = fnames
         self.vocab = [t for t in self.dictionary.itervalues()]
         self.word_counts = np.asarray(tdm.sum(axis=1))
 
