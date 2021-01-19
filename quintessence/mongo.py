@@ -29,11 +29,11 @@ class Mongo:
         return meta
 
     def get_embeddings_data(self):
-        """ returns list of sentences (list of words) """
+        """ returns pandas series of std data from db """
         res = list(self.db["docs.std"].find({}))
         docs = [" ".join(r["std"].split('\t')) for r in res]
         ids = [r["_id"] for r in res]
-        return ids,docs
+        return pd.Series(docs, index=ids)
 
     def write_embeddings_data(self):
         """  """
@@ -41,11 +41,11 @@ class Mongo:
         pass
 
     def get_topic_model_data(self):
-        """ return ids, and strings of lemmatized documents """
+        """  pandas series of lemma data from db """
         res = list(self.db["docs.lemma"].find({}))
         docs = [" ".join(r["lemma"].split('\t')) for r in res]
         ids = [r["_id"] for r in res]
-        return (ids, docs)
+        return pd.Series(docs, index=ids)
 
     def write_topic_model_data(self, lda):
         """
