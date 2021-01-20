@@ -17,12 +17,11 @@ class Corpus:
         self.docs = docs # pd Series
 
     def topic_model_preprocessing(self):
-        # TODO: parallelize
         normalized = [normalize_text(d) for d in self.docs]
         self.docs = pd.Series(normalized, index=self.docs.index)
 
     def embed_preprocessing(self):
-        # TODO: parallelize
-        self.doc_sentences = [sentence_tokenize(d) for d in docs]
-        self.sentences = [normalize_text(s).split() for sents in doc_sentences
+        self.doc_sentences = [sentence_tokenize(d) for d in self.docs]
+        self.sentences = [normalize_text(s).split() 
+                for sents in self.doc_sentences
                 for s in sents]
