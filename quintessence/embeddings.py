@@ -1,16 +1,8 @@
-import string
-import time
-
 import gensim.models.word2vec
-from joblib import Parallel, delayed
-import nltk
-import pymongo
 
 # TODO:
-# split into two classes Embeddings and Embeddings Controller
-# Embeddings Controller is logic for which embeddings to run (e.g compute
-# subsets and so on whereas embeddings just trains a model and saves 
-# the output
+# add timer
+# fix output path
 
 class Embeddings:
     def __init__(self, model_fpath, sg=1, window=15, size=250, workers=4):
@@ -32,7 +24,6 @@ class Embeddings:
             workers: number of workers for training parallelization
         """
         # gensim word2vec
-        start = time.time()
         model = gensim.models.Word2Vec(sentences, 
                 sg=self.sg, window=self.window,
                 size=self.size, workers=self.workers)
@@ -46,4 +37,3 @@ class Embeddings:
         Load model from npy file.
         """
         self.model = gensim.models.Word2Vec.load(self.model_fpath)
-
