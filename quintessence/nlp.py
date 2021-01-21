@@ -29,3 +29,16 @@ def sentence_tokenize(text):
     """ Split a text string into a list of sentences (list of words) """
     sentences = nltk.sent_tokenize(text)
     return sentences
+
+def list_group_by(series):
+    """ behaves like df.groupby("Date").indices but works on list """
+    values = series.explode()
+    inds = {}
+    for index,k in values.items():
+        if k in inds.keys(): inds[k].append(index)
+        else: inds[k] = [index]
+
+    # convert to ndarrays to match groupby return 
+    for k,v in inds.items():
+        inds[k] = np.array(v)
+    return inds

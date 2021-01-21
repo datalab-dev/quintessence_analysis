@@ -3,6 +3,8 @@ import numpy as np
 from scipy.spatial.distance import jensenshannon
 from sklearn.manifold import MDS
 
+from quintessence.nlp import list_group_by
+
 def create_doc_topics (doctopics):
     """
     Create docs.topics data for mongo table
@@ -120,18 +122,6 @@ def compute_top_docs(doctopics):
     topdocs = doctopics.argsort(axis=0)[::-1]
     return topdocs
 
-def list_group_by(series):
-    """ behaves like df.groupby("Date").indices but works on list """
-    values = series.explode()
-    inds = {}
-    for index,k in values.items():
-        if k in inds.keys(): inds[k].append(index)
-        else: inds[k] = [index]
-
-    # convert to ndarrays to match groupby return 
-    for k,v in inds.items():
-        inds[k] = np.array(v)
-    return inds
 
 def compute_topic_proportion (group_indices, weighted):
     """
