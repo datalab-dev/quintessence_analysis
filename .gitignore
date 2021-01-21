@@ -35,3 +35,6 @@ mongo-credentials.json
 
 # log files
 *.log
+
+# mac
+.DS_Store
