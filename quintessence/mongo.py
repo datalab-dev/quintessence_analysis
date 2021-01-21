@@ -4,9 +4,9 @@ import pandas as pd
 import numpy as np
 from pymongo import MongoClient
 
-from quintessence.parse_lda import create_doc_topics
-from quintessence.parse_lda import create_topic_terms
-from quintessence.parse_lda import create_topics
+from quintessence.parse_topicmodel import create_doc_topics
+from quintessence.parse_topicmodel import create_topic_terms
+from quintessence.parse_topicmodel import create_topics
 
 class Mongo:
     def __init__(self, credentials_path):
