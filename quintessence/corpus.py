@@ -9,42 +9,53 @@ from quintessence.nlp import normalize_text
 from quintessence.nlp import sentence_tokenize
 from quintessence.nlp import list_group_by
 
-class Corpus:
+class TMCorpus:
+    meta = None
+    docs = None
+
+    def __init__(self, meta,docs):
+        self.meta = meta
+        self.docs = docs
+        self.topic_model_preprocessing()
+
+    def topic_model_preprocessing(self):
+        normalized = [normalize_text(d) for d in self.docs]
+        self.docs = pd.Series(normalized, index=self.docs.index)
+
+
+class EmbedCorpus:
     meta = None
     docs = None
     sentences = None
     doc_sentences = None
 
+    self.authors_inds = None
+    self.locations_inds = None
+    self.decades_inds = None
+
     def __init__(self, meta, docs):
         self.meta = meta # pd dataframe
         self.docs = docs # pd Series
-
-    def topic_model_preprocessing(self):
-        normalized = [normalize_text(d) for d in self.docs]
-        self.docs = pd.Series(normalized, index=self.docs.index)
+        self.meta["wordcounts"] = [len(d) for d in docs]
+        self.meta["decade"] = [d[0:3] + "0" for d in meta["Date"]]
+        self.embed_preprocessing()
 
     def embed_preprocessing(self):
         """ given meta and docs, return pandas dataframe subset sentence """
         self.doc_sentences = [sentence_tokenize(d) for d in self.docs]
         self.doc_sentences = pd.Series(
                 self.doc_sentences, index=self.docs.index)
+        self.doc_sentences = self.doc_sentences.apply(lambda x:
+                normalize_text(s) for s in x])
 
-        subsets = compute_embedding_subsets()
 
-        self.sentences = [normalize_text(s).split() 
-                for sents in self.doc_sentences
-                for s in sents]
-
-    def compute_embedding_subsets(self):
+    def compute_embedding_subsets(self, minwc = 2000000):
         """ given meta return, series qid, subset """
         meta = self.meta
-        docs = self.docs
-        meta["wordcounts"] = [len(d) for d in docs]
-        meta["decade"] = [d[0:3] + "0" for d in meta["Date"]]
 
         # decades, authors, locations
-        decades = meta.groupby("decade").sum("wordcounts")
         locations = meta.groupby("Location").sum("wordcounts")
+        locations_inds = meta.groupby("Location").indices
         authors_inds = list_group_by(meta["Author"])
         wcs = []
         for k,v in authors_inds.items():
@@ -52,9 +63,14 @@ class Corpus:
         authors = pd.Series(wcs, index=authors_inds.keys())
 
         # keep only those with wordocunt > 2 million
-        decades = list(decades[decades["wordcounts"] > 100000].index)
-        locations = list(locations[locations["wordcounts"] > 100000].index)
-        authors = list(authors[authors > 100000].index)
+        locations = list(locations[locations["wordcounts"] >= minwc].index)
+        authors = list(authors[authors >= minwc].index)
 
-        pass
+        self.authors_inds = {a:authors_inds[a] for a in authors}
+        self.locations_inds = {l:locations_inds[l] for l in locations}
+        decades_inds = meta.groupby("decade").indices
+
+    def get_sentences(self, subset):
+        """ subset name and indices return sentence list """
+
 
