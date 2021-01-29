@@ -1,0 +1,23 @@
+{
+    "embedding": {
+	"embedodir": "~/programs/quintessence/quintessence/data/embeddings/",
+	"sg": 1,
+	"window": 15,
+	"size": 250,
+	"workers": 4
+    },
+
+    "topic_model":  {
+	"mallet_path": "/usr/local/bin/mallet",
+	"num_topics": 5,
+	"tmodir": "~/programs/quintessence/quintessence/data/topicmodel/"
+    },
+
+    "mongo_credentials": {
+        "database": "quintessence",
+        "host": "localhost",
+        "port": "27017",
+        "user": "",
+        "pwd": ""
+    }
+}
