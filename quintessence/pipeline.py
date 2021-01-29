@@ -19,10 +19,8 @@ def EmbeddingsPipeline(args):
 
     # 2. train
     embed = Embeddings(args.embedodir)
-    embed.train(corpus.get_sentences("all"))
-    embed.train(corpus.get_sentences("decades"))
-    embed.train(corpus.get_sentences("authors"))
-    embed.train(corpus.get_sentences("locations"))
+    embed.train_subsets(corpus.docs_sentences, corpus.subsets)
+    embed.train(corpus.sentences)
 
     # 3. save to database
     con.write_embeddings_data(embed)
