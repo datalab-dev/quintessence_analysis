@@ -28,10 +28,8 @@ class EmbedCorpus:
     docs = None
     sentences = None
     doc_sentences = None
-
-    self.authors_inds = None
-    self.locations_inds = None
-    self.decades_inds = None
+    subsets = None
+    minwc = 2000000
 
     def __init__(self, meta, docs):
         self.meta = meta # pd dataframe
@@ -39,38 +37,39 @@ class EmbedCorpus:
         self.meta["wordcounts"] = [len(d) for d in docs]
         self.meta["decade"] = [d[0:3] + "0" for d in meta["Date"]]
         self.embed_preprocessing()
+        self.compute_embedding_subsets()
 
     def embed_preprocessing(self):
         """ given meta and docs, return pandas dataframe subset sentence """
         self.doc_sentences = [sentence_tokenize(d) for d in self.docs]
         self.doc_sentences = pd.Series(
                 self.doc_sentences, index=self.docs.index)
-        self.doc_sentences = self.doc_sentences.apply(lambda x:
-                normalize_text(s) for s in x])
+        self.doc_sentences = self.doc_sentences.apply(
+                lambda x: [normalize_text(s) for s in x])
 
+    def compute_embedding_subsets(self):
+        """ given meta return, series qid, subset 
 
-    def compute_embedding_subsets(self, minwc = 2000000):
-        """ given meta return, series qid, subset """
-        meta = self.meta
+        ["subsets dataframe: type, name, [ids]"
+
+        """
+        decades_inds = self.meta.groupby("decade").indices
+        decades_inds = {d:[decades_inds[d], "decade"] for d in decades_inds.keys()}
+
+        locations = self.meta.groupby("Location").sum("wordcounts")
+        locations_inds = self.meta.groupby("Location").indices
+        locations = list(locations[locations["wordcounts"] >= self.minwc].index)
+        locations_inds = {l:[locations_inds[l], "location"] for l in locations}
 
         # decades, authors, locations
-        locations = meta.groupby("Location").sum("wordcounts")
-        locations_inds = meta.groupby("Location").indices
-        authors_inds = list_group_by(meta["Author"])
+        authors_inds = list_group_by(self.meta["Author"])
         wcs = []
         for k,v in authors_inds.items():
-            wcs.append(meta["wordcounts"][v].sum())
+            wcs.append(self.meta["wordcounts"][v].sum())
         authors = pd.Series(wcs, index=authors_inds.keys())
+        authors = list(authors[authors >= self.minwc].index)
+        authors_inds = {a:[authors_inds[a], "author"] for a in authors}
 
-        # keep only those with wordocunt > 2 million
-        locations = list(locations[locations["wordcounts"] >= minwc].index)
-        authors = list(authors[authors >= minwc].index)
-
-        self.authors_inds = {a:authors_inds[a] for a in authors}
-        self.locations_inds = {l:locations_inds[l] for l in locations}
-        decades_inds = meta.groupby("decade").indices
-
-    def get_sentences(self, subset):
-        """ subset name and indices return sentence list """
-
-
+        combined = {**authors_inds, **locations_inds, **decades_inds} 
+        combined = [[k,v[0], v[1]] for k,v in combined.items()]
+        self.subsets = pd.DataFrame(combined, columns= ["name", "inds", "type"])
