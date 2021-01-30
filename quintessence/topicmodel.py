@@ -24,7 +24,10 @@ class TopicModel:
         - doctopics matrix
 
         """
-        self.model_odir = os.path.abspath(model_odir) # dirname for mallet model, temp files, and dictionary ...
+        # dirname for mallet model, temp files, and dictionary ...
+        # note if expanduser not set then it will incorrectly handle ~ 
+        # when setting absolute; for example test os.path.abspath(~/Documents)
+        self.model_odir = os.path.abspath(os.path.expanduser(model_odir))
         self.mallet_path = mallet_path # ex: '~/mallet-2.0.8/bin/mallet'
         self.num_topics = num_topics
         self.model = None # LdaMallet obj
@@ -36,6 +39,9 @@ class TopicModel:
         self.doc_lens = None
         self.topicterms = None
         self.doctopics = None
+
+        if not os.path.isdir(self.model_odir):
+            os.mkdir(self.model_odir)
 
     def train(self, docs):
         """
@@ -52,8 +58,9 @@ class TopicModel:
         self.corpus = [self.dictionary.doc2bow(doc) for doc in docs]
 
         # train model
+        # mallet is a dummy? add / to prefix...
         self.model = LdaMallet(self.mallet_path,
-                corpus=self.corpus, prefix = self.model_odir,
+                corpus=self.corpus, prefix = self.model_odir + "/",
                           num_topics=self.num_topics, id2word=self.dictionary)
 
         tdm = corpus2csc(self.corpus)
