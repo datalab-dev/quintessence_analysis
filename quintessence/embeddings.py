@@ -28,18 +28,21 @@ class Embeddings:
     def train_all(self, doc_sentences, subsets):
         """ train word2vec models """
 
+        def make_filename(row):
+            name = str(row["name"]).replace(" ", "_")
+            fname = self.models_odir + "/" + row["type"] + "/" + name + ".model"
+            return fname
+
         self.create_model_dirs()
         # foreach row
-        for row in subsets.iterrows():
-            row = row[1]
+        for _,row in subsets.iterrows():
             flat = [s.split() for sentences in doc_sentences[row["inds"]] 
                     for s in sentences]
             model = gensim.models.Word2Vec(flat, sg=self.sg,
                     window = self.window, size = self.size,
                     workers = self.workers) 
-            model.save(self.models_odir + "/" + row["type"] + 
-                "/" + str(row["name"]) + ".model")
-            self.subsets[str(row["name"])] = model
+            model.save(make_filename(row))
+            self.subsets[str(row["name"]).replace(" ","_")] = model
 
         sentences = [s.split() for sents in doc_sentences for s in sents]
         self.model = gensim.models.Word2Vec(sentences, sg=self.sg,
