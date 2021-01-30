@@ -1,39 +1,54 @@
+import os
+import shutil
+
 import gensim.models.word2vec
 
-# TODO:
-# add timer
-# fix output path
-
 class Embeddings:
-    def __init__(self, model_fpath, sg=1, window=15, size=250, workers=4):
-        self.model_fpath = model_fpath
+    def __init__(self, models_odir, sg=1, window=15, size=250, workers=4):
+        self.models_odir = os.path.abspath(os.path.expanduser(models_odir))
         self.sg = sg
         self.window = window
         self.size = size
         self.workers = workers
 
-    def train(self, sentences):
-        """
-        Train word2vec model for set of sentences.
+        self.model = None
+        self.subsets = {} 
 
-        Args:
-            sentences: list of lists of words
-            sg: training algorithm (1 for skipgram otherwise CBOW)
-            window: max distance between current and predicted word in sentence
-            size: dimensionality of word vectors
-            workers: number of workers for training parallelization
-        """
-        # gensim word2vec
-        model = gensim.models.Word2Vec(sentences, 
-                sg=self.sg, window=self.window,
-                size=self.size, workers=self.workers)
-        self.model = model
+    def create_model_dirs(self):
+        """ if output directory exists, delete it and create new one """
+        if os.path.isdir(self.models_odir):
+            shutil.rmtree(self.models_odir, ignore_errors=True)
 
-        print(f"trained model in {(time.time() - start) / 60} minutes")
-        model.save(self.model_fpath)
+        os.mkdir(self.models_odir)
+        dirs = ["author", "decade", "location"]
+        dirs = [self.models_odir + "/" + d for d in dirs]
+        for d in dirs:
+            os.mkdir(d)
 
-    def load_model(self):
+    def train_all(self, doc_sentences, subsets):
+        """ train word2vec models """
+
+        self.create_model_dirs()
+        # foreach row
+        for row in subsets.iterrows():
+            row = row[1]
+            flat = [s.split() for sentences in doc_sentences[row["inds"]] 
+                    for s in sentences]
+            model = gensim.models.Word2Vec(flat, sg=self.sg,
+                    window = self.window, size = self.size,
+                    workers = self.workers) 
+            model.save(self.models_odir + "/" + row["type"] + 
+                "/" + str(row["name"]) + ".model")
+            self.subsets[str(row["name"])] = model
+
+        sentences = [s.split() for sents in doc_sentences for s in sents]
+        self.model = gensim.models.Word2Vec(sentences, sg=self.sg,
+            window = self.window, size = self.size, workers = self.workers)
+        model.save(self.models_odir + "/" + "full.model")
+
+
+    def load_models(self):
         """
-        Load model from npy file.
+        Load models from directory
         """
-        self.model = gensim.models.Word2Vec.load(self.model_fpath)
+        pass

@@ -26,7 +26,6 @@ class TMCorpus:
 class EmbedCorpus:
     meta = None
     docs = None
-    sentences = None
     doc_sentences = None
     subsets = None
     minwc = 2000000
@@ -46,7 +45,6 @@ class EmbedCorpus:
                 self.doc_sentences, index=self.docs.index)
         self.doc_sentences = self.doc_sentences.apply(
                 lambda x: [normalize_text(s) for s in x])
-        self.sentences = [s.split() for sents in doc_sentences for s in sents]
 
     def compute_embedding_subsets(self):
         """ given meta return, series qid, subset 
