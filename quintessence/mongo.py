@@ -9,11 +9,9 @@ from quintessence.parse_topicmodel import create_topic_terms
 from quintessence.parse_topicmodel import create_topics
 
 class Mongo:
-    def __init__(self, credentials_path):
+    def __init__(self, credentials):
         """ create a connection to the mongo database """
-        with open(credentials_path, 'r') as f:
-            credentials = json.load(f)
-            url = f"mongodb://{credentials['host']}:{credentials['port']}"
+        url = f"mongodb://{credentials['host']}:{credentials['port']}"
 
         # try to form client connection
         try:
