@@ -1,5 +1,6 @@
 import os
 import shutil
+import pathlib
 
 import gensim.models.word2vec
 
@@ -44,7 +45,7 @@ class Embeddings:
                     window = window, size = size,
                     workers = workers) 
             model.save(make_filename(row))
-            self.subsets[str(row["name"]).replace(" ","_")] = model
+            self.subsets[str(row["name"]).replace(" ","_")] = (model, row["type"])
 
         sentences = [s.split() for sents in doc_sentences for s in sents]
         self.model = gensim.models.Word2Vec(sentences, sg=sg,
@@ -55,5 +56,24 @@ class Embeddings:
     def load_models(self):
         """
         Load models from directory
+        ./data/embeddings
+            full.model
+            location/*.model
+            author/*.model
+            decade/*.model
+
         """
-        pass
+
+        self.model = None
+        self.subsets = {}
+
+        # full
+        self.model = gensim.models.Word2Vec.load(self.models_dir + "/full.model")
+
+        #subsets
+        models = list(pathlib.Path("./data/embeddings").rglob("*.model"))
+        for m in models:
+            name = m.name
+            mtype = m.parent.name
+            if name != "full.model":
+                self.subsets[name] = (gensim.models.Word2Vec.load(str(m)), mtype)
