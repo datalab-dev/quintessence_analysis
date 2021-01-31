@@ -4,33 +4,35 @@ import shutil
 import gensim.models.word2vec
 
 class Embeddings:
-    def __init__(self, models_odir, sg=1, window=15, size=250, workers=4):
-        self.models_odir = os.path.abspath(os.path.expanduser(models_odir))
-        self.sg = sg
-        self.window = window
-        self.size = size
-        self.workers = workers
+    def __init__(self, models_dir):
+        self.models_dir = os.path.abspath(os.path.expanduser(models_dir))
 
         self.model = None
         self.subsets = {} 
 
     def create_model_dirs(self):
         """ if output directory exists, delete it and create new one """
-        if os.path.isdir(self.models_odir):
-            shutil.rmtree(self.models_odir, ignore_errors=True)
+        if os.path.isdir(self.models_dir):
+            shutil.rmtree(self.models_dir, ignore_errors=True)
 
-        os.mkdir(self.models_odir)
+        os.mkdir(self.models_dir)
         dirs = ["author", "decade", "location"]
-        dirs = [self.models_odir + "/" + d for d in dirs]
+        dirs = [self.models_dir + "/" + d for d in dirs]
         for d in dirs:
             os.mkdir(d)
 
-    def train_all(self, doc_sentences, subsets):
+    def train_all(self, 
+            doc_sentences,
+            subsets,
+            sg = 1,
+            window = 15,
+            size = 250,
+            workers = 4):
         """ train word2vec models """
 
         def make_filename(row):
             name = str(row["name"]).replace(" ", "_")
-            fname = self.models_odir + "/" + row["type"] + "/" + name + ".model"
+            fname = self.models_dir + "/" + row["type"] + "/" + name + ".model"
             return fname
 
         self.create_model_dirs()
@@ -38,16 +40,16 @@ class Embeddings:
         for _,row in subsets.iterrows():
             flat = [s.split() for sentences in doc_sentences[row["inds"]] 
                     for s in sentences]
-            model = gensim.models.Word2Vec(flat, sg=self.sg,
-                    window = self.window, size = self.size,
-                    workers = self.workers) 
+            model = gensim.models.Word2Vec(flat, sg=sg,
+                    window = window, size = size,
+                    workers = workers) 
             model.save(make_filename(row))
             self.subsets[str(row["name"]).replace(" ","_")] = model
 
         sentences = [s.split() for sents in doc_sentences for s in sents]
-        self.model = gensim.models.Word2Vec(sentences, sg=self.sg,
-            window = self.window, size = self.size, workers = self.workers)
-        model.save(self.models_odir + "/" + "full.model")
+        self.model = gensim.models.Word2Vec(sentences, sg=sg,
+            window = window, size = size, workers = workers)
+        model.save(self.models_dir + "/" + "full.model")
 
 
     def load_models(self):
