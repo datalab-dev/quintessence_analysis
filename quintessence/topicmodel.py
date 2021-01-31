@@ -46,11 +46,12 @@ class TopicModel:
 
         Docs is pandas series, index is ids, and values are normalized strings
         mallet_path is a string containing path to mallet binary
+            ex: '~/mallet-2.0.8/bin/mallet'
         num_topics is int
 
         Saves all outputs as properties of the class instance, as well as to files in self.model_dir path
         """
-        mallet_path = os.path.abspath(os.path.expanduser(mallet_path) # ex: '~/mallet-2.0.8/bin/mallet'
+        mallet_path = os.path.abspath(os.path.expanduser(mallet_path)) 
         self.fnames = list(docs.index)
         docs = [doc.split() for doc in docs]
         self.dictionary = Dictionary(docs)
