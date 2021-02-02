@@ -8,8 +8,9 @@ class Embeddings:
     def __init__(self, models_dir):
         self.models_dir = os.path.abspath(os.path.expanduser(models_dir))
 
-        self.model = None
-        self.subsets = []
+        self.full = None
+        self.subsets = [] # list of tuples
+        self.decades = [] #  list of tuples
 
     def create_model_dirs(self):
         """ if output directory exists, delete it and create new one """
@@ -45,7 +46,11 @@ class Embeddings:
                     window = window, size = size,
                     workers = workers) 
             model.save(make_filename(row))
-            self.subsets.append(([str(row["name"]).replace(" ","_")], 
+
+            if row["type"] == "decade":
+                self.decades.append((str(row["name"]), model))
+            else:
+                self.subsets.append(([str(row["name"]).replace(" ","_")], 
                     model, row["type"]))
 
         sentences = [s.split() for sents in doc_sentences for s in sents]
@@ -77,5 +82,10 @@ class Embeddings:
             name = m.name
             mtype = m.parent.name
             if name != "full.model":
-                self.subsets.append((name, 
+
+                if mtype == "decade":
+                    self.decades.append((name, 
+                        gensim.models.Word2Vec.load(str(m))))
+                else:
+                    self.subsets.append((name, 
                         gensim.models.Word2Vec.load(str(m)), mtype))
