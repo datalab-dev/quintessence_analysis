@@ -3,6 +3,7 @@ import re
 import numpy as np
 import nltk
 from nltk.corpus import stopwords
+import gensim
 
 def normalize_text(text,
         lower = True,
@@ -43,3 +44,40 @@ def list_group_by(series):
     for k,v in inds.items():
         inds[k] = np.array(v)
     return inds
+
+def align_vocab(base, other):
+    """ given base model and model to be aligned to base, 
+    find the overlapping vocab terms, reorder the syn0norm and syn0 matrices
+    of the two models to only have the overlapping terms.  
+    This is necessary for procrustes alignment to work.
+    """
+
+    common_vocab = list(set(base.wv.vocab.keys()) & set(other.wv.vocab.keys()))
+
+    # sort vocab based on combined count
+    common_vocab.sort(key=lambda w: base.wv.vocab[w].count + other.wv.vocab[w].count,reverse=True)
+
+    # generate new syn0norm + syn0, vocab dictionary + index2word for each model
+    for model in [base, other]:
+        indices = [model.wv.vocab[w].index for w in common_vocab]
+        model.wv.syn0norm = np.array([model.wv.syn0norm[i] for i in indices])
+        model.wv.syn0 = model.wv.syn0norm
+
+        model.index2word = common_vocab
+        for i,term in enumerate(common_vocab):
+            m.wv.vocab[term] = gensim.models.word2vec.Vocab(index=i, 
+                    count=m.wv.vocab[term].count)
+
+    return base,other
+
+def procrustes_alignment(base, other):
+    """  Align two models using procrustes alignment. Thanks 'histwords'
+    https://github.com/williamleif/histwords/blob/master/vecanalysis/alignment.py
+    """
+    base, other = align_vocab(base, other)
+    m = other.wv.syn0norm.T.dot(base.wv.syn0norm)
+    u, _, v = np.linalg.svd(m)
+    ortho = u.dot(v)
+    other.wv.syn0norm = other.wv.syn0norm.dot(ortho)
+    other.wv.syn0 = other.wv.syn0norm
+    return base,other
