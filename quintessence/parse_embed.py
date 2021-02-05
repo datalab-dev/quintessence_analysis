@@ -1,97 +1,132 @@
-""" TODO """
-def align(self):
+import copy
+
+import pandas as pd
+from gensim.models.word2vec import Word2Vec
+
+from quintessence.nlp import procrustes_alignment
+
+def get_vocab(full):
+    """ return dictionary id:term """
+    vocab = sorted(list(full.wv.vocab))
+    return {term:i for i,term in enumerate(vocab)}
+
+def create_terms(full, vocab):
+    """ create terms collection docs
+
+    terms
+    termId: 0
+    term: "abbot"
+    neighbors:
+    scores:
     """
-    Create terms.timeseries.
+
+    docs = []
+    for term,termId in vocab.items():
+        terms, scores = zip(*full.most_similar(term))
+        record = {
+                "termId" : termId,
+                "term" : term,
+                "freq" : full.wv.vocab[term].count,
+                "neighbors": [vocab[t] for t in terms],
+                "scores": list(scores)
+                } 
+        docs.append(record)
+    return docs
+
+def create_subsets(subsets):
+    """ create subsets collection docs
+
+    subsets
+    subsetId:
+    type:
+    subset:
+
     """
-    # TODO add smart_procrustes_align_gensim (maybe in utils?)
+    index = 0
+    docs = []
+    for name,_,stype in subsets:
+        record = {
+                "subsetId": index,
+                "type": stype,
+                "subset": name.split('.')[0]
+                }
+        docs.append(record)
+        index+=1
+    return docs
 
-    # TODO load models  + model names from somwhere
-    # TODO t0 = model for 1700
 
-    t0.init_sims()
+def create_nearest_neighbors(subset, vocab, n=10)
+    """ Create collection of nearest neighbors for a subset
 
-    dists = {}
-    for model in models:
-        model.init_sims()
-        aligned = smart_procrustes_align_gensim(t0, model)
-        for term in aligned.wv.vocab.keys():
-            base = t0.wv[term]
-            vec = aligned.wv[term]
-            similarity = 1 - scipy.spatial.distance.cosine(base, vec)
-            if v not in dists:
-                dists[term] = np.zeros(len(models), dtype=float)
-            dists[term][i] = similarity
-
-    docs = [{'_id': term, 'timeseries': dists[term]} for term in dists]
-    db['terms.timeseries'].remove()
-    db['terms.timeseries'].insert_many(docs)
-
-def nn(self, model_type, n=20):
+    terms.subset
+    termId:
+    freq:
+    neighbors: [ ] # intergers
+    scores: [ ] # floats
     """
-    Create terms.neighbors.
 
-    Args:
-        model_type: {'full', 'decades', 'authors', 'locations'}
-        n: the number of top nearest neighbors to store
+    name = subset[0]
+    model = subset[1]
+    stype = subset[2]
+
+    for term,termId in vocab.items():
+        # if term in model:
+        if term in model.vocab:
+            freq = model.wv.vocab[term].count
+            terms, scores = zip(*model.most_similar(term))
+            terms = [vocab[t] for t in terms]
+            scores = list(scores)
+        else:
+            freq = 0
+            terms = []
+            scores = []
+
+        record = {
+                "termId" : termId,
+                "freq": freq,
+                "neighbors": [vocab[t] for t in terms],
+                "scores": list(scores)
+                } 
+
+        docs.append(record)
+    return docs
+            
+
+def create_similarity_over_time(decades, vocab):
     """
-    # TODO load models  + model names from somwhere
+    Create terms.timeseries collection docs
 
-    if model_type == 'full':
-        termdict = {'full': {'neighbors': [], 'scores': []}}
-    else:
-        termdict = {}
-        termdict[model_type] = {
-            name: {'neighbors': [], 'scores': []} for name in model_names
-        }
-
-    for model in models:
-        for term in model.wv.vocab.keys:
-            if term not in nndict:
-                nndict[term] = termdict
-                nndict[term]['_id'] = term
-            results = model.wv.vocab.keys.most_similar(word, topn=n)
-            for result in results:
-                nn = nndict[term][model_type]
-                if model_type != 'full'
-                    nn = nn[model_name]
-                nn.neighbors.append(result[0])
-                nn.scores.append(result[1])
-
-    docs = list(nndict.values())
-    update = {'$set': docs}
-    db['terms.neighbors'].update_many({}, update)
-
-def freq(self, model_type):
+    terms.timeseries
+    termId: 0,
+    similarities: [0.90, 0.84, 0.89, ...] floats
     """
-    Create terms.frequencies.
 
-    Args:
-        model_type: {'full', 'decades', 'authors', 'locations'}
-    """
-    # TODO load models  + model names from somwhere
+    docs = []
+    # sort decades from smallest to largest (earliest to last)
+    # base model is the largest
+    decades.sort(key=lambda tup: tup[0])
 
-    if model_type == 'full':
-        termdict = {'full': {'freq': None, 'relFreq': None}}
-    else:
-        termdict = {}
-        termdict[model_type] = {
-            name: {'freq': None, 'relFreq': None} for name in model_names
-        }
+    ## compute alignments
+    alignments = []
+    for d in decades:
+        # need to do a deepcopy here on the base model because otherwise
+        # it will be altered by each alignment since python is pass
+        # by object reference (in this case behaving like pass by reference)
+        # dont need to deepcopy the others, since its fine if they
+        # are altered in the embeddings class, but not sure what will be changed
+        # in the future, so...
+        base,other = procrustes_alignment(copy.deepcopy(decades[-1][1]),
+                copy.deepcopy(d[1]))
+        alignments.append((base, other))
 
-    for model in models:
-        total = sum(model.wv.vocab[term].count for term, vocab_obj in
-                    model_wv.vocab.items())
-        for term, vocab_obj in model_wv.vocab.items():
-            if term not in nndict:
-                freqdict[term] = termdict
-                freqdict[term]['_id'] = term
-            count = model.wv.vocab[term].count
-            f = nndict[term][model_type]
-            if model_type != 'full'
-                f = nn[model_name]
-            f.freq = count
-            f.relFreq = count / total
+    # for each term
 
-    docs = list(freqdict.values())
-    update = {'$set': docs}
-    db['terms.frequencies'].update_many({}, update)
+    #    init similaries list
+    #    get termId
+
+    #      for each subset (strating 1400 - 1700)
+    #           compute similarity to same term in 1700; append to list
+
+    #  create record, append to docs
+    return docs
+
