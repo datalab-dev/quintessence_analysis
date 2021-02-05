@@ -77,7 +77,7 @@ class Embeddings:
         self.model = gensim.models.Word2Vec.load(self.models_dir + "/full.model")
 
         #subsets
-        models = list(pathlib.Path("./data/embeddings").rglob("*.model"))
+        models = list(pathlib.Path(self.models_dir).rglob("*.model"))
         for m in models:
             name = m.name
             mtype = m.parent.name
