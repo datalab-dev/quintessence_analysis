@@ -27,7 +27,7 @@ def EmbeddingsPipeline(args):
 
     # 1. get data
     con = Mongo(args["mongo_credentials"])
-    corpus = EmbedCorpus(con.get_metadata(), con.get_topic_model_data())
+    corpus = EmbedCorpus(con.get_metadata(), con.get_embeddings_data())
 
     # 2. train
     embed = Embeddings(args["embedding"]["embedodir"])
