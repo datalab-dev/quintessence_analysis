@@ -56,7 +56,7 @@ class Embeddings:
         sentences = [s.split() for sents in doc_sentences for s in sents]
         self.model = gensim.models.Word2Vec(sentences, sg=sg,
             window = window, size = size, workers = workers)
-        model.save(self.models_dir + "/" + "full.model")
+        self.model.save(self.models_dir + "/" + "full.model")
 
 
     def load_models(self):
