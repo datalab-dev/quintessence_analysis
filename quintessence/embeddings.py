@@ -50,7 +50,7 @@ class Embeddings:
             if row["type"] == "decade":
                 self.decades.append((str(row["name"]), model))
             else:
-                self.subsets.append(([str(row["name"]).replace(" ","_")], 
+                self.subsets.append((str(row["name"]).replace(" ","_"), 
                     model, row["type"]))
 
         sentences = [s.split() for sents in doc_sentences for s in sents]
