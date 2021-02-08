@@ -33,11 +33,6 @@ class Mongo:
         ids = [r["_id"] for r in res]
         return pd.Series(docs, index=ids)
 
-    def write_embeddings_data(self):
-        """  """
-        # TODO:
-        pass
-
     def get_topic_model_data(self):
         """  pandas series of lemma data from db """
         res = list(self.db["docs.lemma"].find({}))
@@ -71,3 +66,17 @@ class Mongo:
         self.db['topics'].insert_many(create_topics(meta,
             lda.doctopics, 
             lda.doc_lens, lda.topicterms))
+
+    def write_embeddings_data(self, embeddings):
+        vocab = get_vocab(embeddings.model)
+
+        terms = create_terms(embeddings.model, vocab)
+
+        subsets = create_subsets(embeddings.subsets)
+
+        for s in embeddings.subsets:
+            nn = create_nearest_neighbors(s, vocab)
+        for d in decades:
+            nn = create_nearest_neighbors(d, vocab)
+
+        timeseries = create_similarity_over_time(embeddings.decades, vocab)

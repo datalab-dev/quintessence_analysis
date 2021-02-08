@@ -80,8 +80,9 @@ class Embeddings:
         models = list(pathlib.Path(self.models_dir).rglob("*.model"))
         for m in models:
             name = m.name
+            name = name.split('.')[0] # remove .model from name
             mtype = m.parent.name
-            if name != "full.model":
+            if name != "full":
 
                 if mtype == "decade":
                     self.decades.append((name, 

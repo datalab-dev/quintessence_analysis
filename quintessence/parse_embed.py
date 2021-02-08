@@ -1,7 +1,8 @@
 import copy
 
-import pandas as pd
 from gensim.models.word2vec import Word2Vec
+import pandas as pd
+from scipy import spatial
 
 from quintessence.nlp import procrustes_alignment
 
@@ -48,15 +49,17 @@ def create_subsets(subsets):
         record = {
                 "subsetId": index,
                 "type": stype,
-                "subset": name.split('.')[0]
+                "subset": name
                 }
         docs.append(record)
         index+=1
     return docs
 
 
-def create_nearest_neighbors(subset, vocab, n=10)
+def create_nearest_neighbors(subset, vocab, n=10):
     """ Create collection of nearest neighbors for a subset
+    Subset can be decade < ('date', 'model) > or 
+    generic subset < ('name', model, 'type') >
 
     terms.subset
     termId:
@@ -67,20 +70,12 @@ def create_nearest_neighbors(subset, vocab, n=10)
 
     name = subset[0]
     model = subset[1]
-    stype = subset[2]
 
-    for term,termId in vocab.items():
-        # if term in model:
-        if term in model.vocab:
-            freq = model.wv.vocab[term].count
-            terms, scores = zip(*model.most_similar(term))
-            terms = [vocab[t] for t in terms]
-            scores = list(scores)
-        else:
-            freq = 0
-            terms = []
-            scores = []
-
+    docs = []
+    for term in model.wv.vocab.keys():
+        termId = vocab[term]
+        freq = model.wv.vocab[term].count
+        terms, scores = zip(*model.wv.most_similar(term))
         record = {
                 "termId" : termId,
                 "freq": freq,
@@ -120,13 +115,21 @@ def create_similarity_over_time(decades, vocab):
         alignments.append((base, other))
 
     # for each term
+    for term,tid in vocab.items():
+        similarities = [None for i in range(len(alignments))]
 
-    #    init similaries list
-    #    get termId
+        for i,align in enumerate(alignments):
+            if term in align[0].wv.vocab.keys():
+                ind = align[0].wv.vocab[term].index
+                similarities[i] = 1 - spatial.distance.cosine(
+                        align[0].wv.vectors[ind,],
+                        align[1].wv.vectors[ind,])
 
-    #      for each subset (strating 1400 - 1700)
-    #           compute similarity to same term in 1700; append to list
-
-    #  create record, append to docs
+        #  create record, append to docs
+        record = {
+                "termId": tid,
+                "similarities": similarities
+                }
+        docs.append(record)
     return docs
 
