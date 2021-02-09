@@ -4,6 +4,8 @@ as they are pulled from the database, preprocessed and sent to the models
 Plan is to create one for the topic model data and one for the word2vec data.
 """
 import pandas as pd
+from joblib import Parallel
+from joblib import delayed
 
 from quintessence.nlp import normalize_text
 from quintessence.nlp import sentence_tokenize
@@ -13,13 +15,15 @@ class TMCorpus:
     meta = None
     docs = None
 
-    def __init__(self, meta,docs):
+    def __init__(self, meta, docs, workers=4):
+        self.workers = workers
         self.meta = meta
         self.docs = docs
         self.topic_model_preprocessing()
 
     def topic_model_preprocessing(self):
-        normalized = [normalize_text(d) for d in self.docs]
+        normalized = Parallel(n_jobs=self.workers)(delayed(normalize_text)(d) for 
+                d in self.docs)
         self.docs = pd.Series(normalized, index=self.docs.index)
 
 
@@ -30,7 +34,8 @@ class EmbedCorpus:
     subsets = None
     minwc = 2000000
 
-    def __init__(self, meta, docs):
+    def __init__(self, meta, docs, workers =4):
+        self.workers = workers 
         self.meta = meta # pd dataframe
         self.docs = docs # pd Series
         self.meta["wordcounts"] = [len(d) for d in docs]
@@ -40,11 +45,18 @@ class EmbedCorpus:
 
     def embed_preprocessing(self):
         """ given meta and docs, return pandas dataframe subset sentence """
-        self.doc_sentences = [sentence_tokenize(d) for d in self.docs]
+
+        def normalize_sentences(d):
+            return [normalize_text(s) for s in d]
+
+        self.doc_sentences = Parallel(n_jobs=self.workers)(delayed(
+            sentence_tokenize)(d) for d in self.docs)
+
+        self.doc_sentences = Parallel(n_jobs=self.workers)(delayed(
+            normalize_sentences)(d) for d in self.doc_sentences)
+
         self.doc_sentences = pd.Series(
                 self.doc_sentences, index=self.docs.index)
-        self.doc_sentences = self.doc_sentences.apply(
-                lambda x: [normalize_text(s) for s in x])
 
     def compute_embedding_subsets(self):
         """ given meta return, series qid, subset 
