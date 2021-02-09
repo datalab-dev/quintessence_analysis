@@ -7,6 +7,11 @@ from pymongo import MongoClient
 from quintessence.parse_topicmodel import create_doc_topics
 from quintessence.parse_topicmodel import create_topic_terms
 from quintessence.parse_topicmodel import create_topics
+from quintessence.parse_embed import create_nearest_neighbors
+from quintessence.parse_embed import create_similarity_over_time
+from quintessence.parse_embed import create_subsets
+from quintessence.parse_embed import create_terms
+from quintessence.parse_embed import get_vocab
 
 class Mongo:
     def __init__(self, credentials):
@@ -70,13 +75,36 @@ class Mongo:
     def write_embeddings_data(self, embeddings):
         vocab = get_vocab(embeddings.model)
 
-        terms = create_terms(embeddings.model, vocab)
+        # terms
+        self.db['terms'].remove({})
+        self.db['terms'].insert_many(create_terms(embeddings.model, vocab))
 
-        subsets = create_subsets(embeddings.subsets)
+        # terms.subsets
+        self.db['terms.subsets'].remove({})
+        self.db['terms.subsets'].insert_many(create_subsets(embeddings.subsets))
 
+        # nearest neighbors
+        collections = self.db.list_collection_names()
+
+        ## subsets
+        subset_collections = [c for c in collections if "terms.subset." in c]
+        for sc in subset_collections:
+            self.db[sc].remove({})
         for s in embeddings.subsets:
-            nn = create_nearest_neighbors(s, vocab)
-        for d in decades:
-            nn = create_nearest_neighbors(d, vocab)
+            # terms.subset.name
+            self.db["terms.subset." + s[0]].insert_many(
+                create_nearest_neighbors(s, vocab))
 
-        timeseries = create_similarity_over_time(embeddings.decades, vocab)
+        ## decades
+        decades_collections = [c for c in collections if "terms.decade." in c]
+        for dc in decades_collections:
+            self.db[dc].remove({})
+        for d in embeddings.decades:
+            # terms.decade.name
+            self.db["terms.decade." + d[0]].insert_many(
+                create_nearest_neighbors(d, vocab))
+
+        # terms.timeseries
+        self.db['terms.timeseries'].remove({})
+        self.db['terms.timeseries'].insert_many(
+            create_similarity_over_time(embeddings.decades, vocab))

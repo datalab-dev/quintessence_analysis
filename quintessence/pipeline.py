@@ -39,4 +39,4 @@ def EmbeddingsPipeline(args):
             args["embedding"]["workers"])
 
     # 3. save to database
-    # con.write_embeddings_data(embed)
+    con.write_embeddings_data(embed)
