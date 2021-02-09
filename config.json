@@ -1,10 +1,10 @@
 {
+    "ncores": 4,
     "embedding": {
 	"embedodir": "~/programs/quintessence/quintessence/data/embeddings/",
 	"sg": 1,
 	"window": 15,
-	"size": 250,
-	"workers": 4
+	"size": 250
     },
 
     "topic_model":  {

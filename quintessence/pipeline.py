@@ -12,7 +12,9 @@ def TopicModelPipeline(args):
 
     # 1. get data
     con = Mongo(args["mongo_credentials"])
-    corpus = TMCorpus(con.get_metadata(), con.get_topic_model_data())
+    corpus = TMCorpus(con.get_metadata(), 
+            con.get_topic_model_data(),
+            args["ncores"])
 
     # 2. train
     lda = TopicModel(args["topic_model"]["tmodir"])
@@ -27,7 +29,9 @@ def EmbeddingsPipeline(args):
 
     # 1. get data
     con = Mongo(args["mongo_credentials"])
-    corpus = EmbedCorpus(con.get_metadata(), con.get_embeddings_data())
+    corpus = EmbedCorpus(con.get_metadata(), 
+            con.get_embeddings_data(),
+            args["ncores"])
 
     # 2. train
     embed = Embeddings(args["embedding"]["embedodir"])
@@ -36,7 +40,7 @@ def EmbeddingsPipeline(args):
             args["embedding"]["sg"],
             args["embedding"]["window"],
             args["embedding"]["size"],
-            args["embedding"]["workers"])
+            args["ncores"])
 
     # 3. save to database
     con.write_embeddings_data(embed)
