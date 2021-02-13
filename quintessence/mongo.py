@@ -14,36 +14,43 @@ from quintessence.parse_embed import create_terms
 from quintessence.parse_embed import get_vocab
 
 class Mongo:
+    db = None
+
     def __init__(self, credentials):
         """ create a connection to the mongo database """
-        url = f"mongodb://{credentials['host']}:{credentials['port']}"
-
-        # try to form client connection
         try:
-            client = MongoClient(url)
+            client = MongoClient(
+                    f"mongodb://{credentials['host']}:{credentials['port']}")
+            self.db = client[credentials['database']]
         except pymongo.errors.ConnectionFailure:
             print(f"Failed to connect to {url}")
 
-        self.db = client[credentials['database']]
 
     def get_metadata(self):
         """ returns dataframe version of metadata from database """
         meta = pd.DataFrame.from_records(list(self.db["docs.meta"].find({})))
-        return meta
+        return meta.set_index("_id")
 
     def get_embeddings_data(self):
         """ returns pandas series of std data from db """
+
         res = list(self.db["docs.std"].find({}))
         docs = [" ".join(r["std"].split('\t')) for r in res]
         ids = [r["_id"] for r in res]
-        return pd.Series(docs, index=ids)
+
+        meta = self.get_metadata()
+        df = pd.DataFrame( {'_id': ids, 'docs': docs})
+        return df.set_index("_id").join(meta).dropna()
 
     def get_topic_model_data(self):
         """  pandas series of lemma data from db """
         res = list(self.db["docs.lemma"].find({}))
         docs = [" ".join(r["lemma"].split('\t')) for r in res]
         ids = [r["_id"] for r in res]
-        return pd.Series(docs, index=ids)
+
+        meta = self.get_metadata()
+        df = pd.DataFrame( {'_id': ids, 'docs': docs})
+        return df.set_index("_id").join(meta).dropna()
 
     def write_topic_model_data(self, lda):
         """
