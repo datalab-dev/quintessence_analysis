@@ -39,8 +39,8 @@ class Mongo:
         ids = [r["_id"] for r in res]
 
         meta = self.get_metadata()
-        df = pd.DataFrame( {'_id': ids, 'docs': docs})
-        return df.set_index("_id").join(meta).dropna()
+        df = pd.DataFrame( {'_id': ids, 'docs': docs}).dropna()
+        return df.set_index("_id").join(meta)
 
     def get_topic_model_data(self):
         """  pandas series of lemma data from db """
@@ -49,8 +49,8 @@ class Mongo:
         ids = [r["_id"] for r in res]
 
         meta = self.get_metadata()
-        df = pd.DataFrame( {'_id': ids, 'docs': docs})
-        return df.set_index("_id").join(meta).dropna()
+        df = pd.DataFrame( {'_id': ids, 'docs': docs}).dropna()
+        return df.set_index("_id").join(meta)
 
     def write_topic_model_data(self, lda):
         """
