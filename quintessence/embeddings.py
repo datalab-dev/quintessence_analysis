@@ -17,7 +17,7 @@ class Embeddings:
         if os.path.isdir(self.models_dir):
             shutil.rmtree(self.models_dir, ignore_errors=True)
 
-        os.mkdir(self.models_dir)
+        os.makedirs(self.models_dir)
         dirs = ["author", "decade", "location"]
         dirs = [self.models_dir + "/" + d for d in dirs]
         for d in dirs:

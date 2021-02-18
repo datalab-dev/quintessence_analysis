@@ -4,7 +4,7 @@ from gensim.models.word2vec import Word2Vec
 import pandas as pd
 from scipy import spatial
 
-from quintessence.nlp import procrustes_alignment
+from quintessence.alignment import procrustes_alignment
 
 def get_vocab(full):
     """ return dictionary id:term """
