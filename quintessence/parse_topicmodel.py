@@ -12,47 +12,37 @@ def create_doc_topics (doctopics):
     doc.topics
     _id: 0,
     topics: [
-       {"topicId": 0, "probability": 0.05},
-       {"topicId": 1, "probability": 0.08}, ...
+       (0, 0.05),
+       ...
       ]
 
     returns list of dicts
     """
-    doctopics = doctopics.todense().A
     docs = []
-    for qid, row in enumerate(doctopics):
-        topics = []
-        for topic, probability in enumerate(row):
-            topics.append({'topicId': topic, 'probability': probability})
-        docs.append({'_id': qid, 'topics': topics})
+    for ind,v in doctopics.to_dict('index').items():
+        docs.append({'_id': ind, 'topics': list(v.items())})
     return docs
 
-def create_topic_terms (topicterms, dictionary):
+def create_topic_terms (topicterms):
     """
     Create topic.terms data for mongo table
 
     topic.terms
     topicId: 0,
     terms: [
-        {"term": "abate", "probability": 0.01},
+        ("abate", 0.01),
         ...
     ]
 
     returns list of dicts
     """
 
-    # normalize and smooth topicterms
-    topicterms = np.apply_along_axis(lambda x: x / x.sum(), 1, topicterms)
     docs = []
-    for topicid, row in enumerate(topicterms):
-        terms = []
-        for termindex, probability in enumerate(row):
-            term = dictionary.id2token[termindex]
-            terms.append({'term': term, 'probability': probability})
-        docs.append({'topicId': topicid, 'terms': terms})
+    for ind,v in topicterms.to_dict('index').items():
+        docs.append({'_id': ind, 'terms': list(v.items())})
     return docs
 
-def create_topics (meta, doctopics, doc_lens, topicterms):
+def create_topics (corpusdf, doctopics, dtm, topicterms):
     """
     Create topics data for mongo table
 
@@ -64,19 +54,23 @@ def create_topics (meta, doctopics, doc_lens, topicterms):
     authors: [...],
     locations: [...],
     keywords: [...],
-    publishers: [...],
+    dates: [...],
     topDocs: [1, 5, 345, 657, 34503]
 
     returns list of dicts
     """
 
+    doc_lens = dtm.sum(axis=1) # row sums
+
     proportions = compute_proportions(doctopics, doc_lens)
     coordinates = compute_coordinates(topicterms)
     topdocs = compute_top_docs(doctopics)
-    subsets = subset_proportions(meta, doctopics, doc_lens)
+
+    subsets = subset_proportions(corpusdf, doctopics, doc_lens)
     authors = subsets[0]
     locations = subsets[1]
     keywords = subsets[2]
+    dates = subsets[3]
 
     # foreach topic
     docs = []
@@ -91,14 +85,16 @@ def create_topics (meta, doctopics, doc_lens, topicterms):
                 locations[i].sort_values(ascending=False)[0:10].index),
             'topKeywords': list(
                 keywords[i].sort_values(ascending=False)[0:10].index),
+            'years': dates[i].to_dict(),
             'topDocs': [int(d) for d in topdocs[0:10, i]]})
     return docs
 
 
 def compute_proportions(doctopics, doc_lens):
     """ Compute corpus wide topic proportions """
-    weighted = np.multiply(doctopics.todense(), doc_lens.T)
-    return np.array(np.sum(weighted, axis = 0) / np.sum(weighted))
+    weighted = doctopics.multiply(doc_lens, axis=0) # multiply dt by doc_lens
+    colsums = weighted.sum(axis=0)
+    return colsums / weighted.values.sum()
 
 def compute_coordinates(topicterms):
     """ 
@@ -106,11 +102,12 @@ def compute_coordinates(topicterms):
     topic terms matrix 
     """
 
-    dists = np.zeros(shape=(topicterms.shape[0], topicterms.shape[0]))
+    tt = np.array(topicterms)
+    dists = np.zeros(shape=(tt.shape[0], tt.shape[0]))
 
-    for i in range(topicterms.shape[0]):
-        for j in range(i + 1, topicterms.shape[0]):
-            dists[i][j] = jensenshannon(topicterms[i], topicterms[j])
+    for i in range(tt.shape[0]):
+        for j in range(i + 1, tt.shape[0]):
+            dists[i][j] = jensenshannon(tt[i], tt[j])
     dists = dists + dists.T
 
     return MDS(n_components=2, 
@@ -118,12 +115,12 @@ def compute_coordinates(topicterms):
 
 def compute_top_docs(doctopics):
     """ returns ndarray rows are topic values are doc ids """
-    doctopics = doctopics.todense().A
-    topdocs = doctopics.argsort(axis=0)[::-1]
+    dt = np.array(doctopics)
+    topdocs = dt.argsort(axis=0)[::-1]
     return topdocs
 
 
-def compute_topic_proportion (group_indices, weighted):
+def compute_topic_proportion (group_indices, doctopics, doc_lens):
     """
     For the given group indices, compute proportion for each 
     unique entry in the subset (e.g if subset = author, then each entry
@@ -134,33 +131,32 @@ def compute_topic_proportion (group_indices, weighted):
     """
     names = list(group_indices.keys())
     res = np.zeros((len(names), weighted.shape[1]))
+
     i = 0
     for n,indices in group_indices.items():
-        res[i] = np.sum(weighted[indices,], axis=0) / np.sum(weighted[indices,])
+        dt = doctopics.loc[indices]
+        dl = doc_lens[indices]
+        res[i] = compute_proportions(dt, dl)
         i += 1
 
     return pd.DataFrame(res, index=names)
 
-def subset_proportions(meta, doctopics, doc_lens):
+def subset_proportions(corpus, doctopics, doc_lens):
     """  
-    for each metadata grouping, compute the mean nonzero topic proportion 
-    return ndarray rows are meta fields (author1, author2, loc1, ...),
-    cols are topics, values are mean nonzero proportion
+    for each metadata grouping (e.g London, 'John Donne etc) 
+    compute topic prorportions
 
-    relevant fields are authors, locations, keywords, publishers
+    return list of dataframes
     """
-    # multiply doc topics by doc lens (element wise)
-    weighted = np.multiply(doctopics.todense(), doc_lens.T)
-
     # get inds for each unique value
-    authors_inds = list_group_by(meta["Author"])
-    locations_inds = meta.groupby("Location").indices
-    keywords_inds = list_group_by(meta["Keywords"])
-    #publisher_inds = meta.groupby("Publisher").indices
+    authors_inds = list_group_by(corpus["Author"])
+    locations_inds = corpus.groupby("Location").groups
+    keywords_inds = list_group_by(corpus["Keywords"])
+    dates_inds = corpus.groupby("Date").groups
 
     # compute mean nonzero proportion foreach subset
-    authors = compute_topic_proportion(authors_inds, weighted)
-    locations = compute_topic_proportion(locations_inds, weighted)
-    keywords = compute_topic_proportion(keywords_inds, weighted)
-    #publisher_inds = compute_topic_proportion(publisher_inds, weighted)
-    return [authors, locations, keywords]
+    authors = compute_topic_proportion(authors_inds, doctopics, doc_lens)
+    locations = compute_topic_proportion(locations_inds, doctopics, doc_lens)
+    keywords = compute_topic_proportion(keywords_inds, doctopics, doc_lens)
+    dates = compute_topic_proportion(dates_inds, doctopics, doc_lens)
+    return [authors, locations, keywords, dates]
