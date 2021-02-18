@@ -1,8 +1,16 @@
 import os
-import shutil
 import pathlib
+import shutil
 
 import gensim.models.word2vec
+from joblib import delayed
+from joblib import Parallel
+import numpy as np
+import pandas as pd
+
+from quintessence.nlp import list_group_by
+from quintessence.nlp import normalize_text
+from quintessence.nlp import sentence_tokenize
 
 class Embeddings:
     def __init__(self, models_dir):
@@ -23,9 +31,59 @@ class Embeddings:
         for d in dirs:
             os.mkdir(d)
 
+
+    def preprocessing(self, corpusdf, workers=4):
+        """ corpusdf["docs"] -> normalized list (sentences)  of lists (words)"""
+
+        def normalize_sentences(d):
+            return [normalize_text(s) for s in d]
+
+        docs = corpusdf["docs"]
+
+        doc_sentences = Parallel(n_jobs=workers)(delayed(sentence_tokenize)(d)
+                for d in docs)
+
+        doc_sentences = Parallel(n_jobs=workers)(delayed(
+            normalize_sentences)(d) for d in doc_sentences)
+
+        corpusdf["docs"] = doc_sentences
+        return corpusdf
+
+
+    def compute_subsets(self, corpusdf, minwc=2000000):
+        """ given meta return, series qid, subset 
+
+        ["subsets dataframe: type, name, [ids]"
+
+        """
+        corpusdf["wordcounts"] = corpusdf["docs"].apply(lambda x: len(x.split()))
+        corpusdf["decade"] = corpusdf["Date"].apply(lambda x: x[0:3] + "0")
+
+        decades_inds = corpusdf.groupby("decade").groups
+        decades_inds = {d:[decades_inds[d], "decade"] for d in decades_inds.keys()}
+
+        locations = corpusdf.groupby("Location").sum("wordcounts")
+        locations_inds = corpusdf.groupby("Location").groups
+        locations = list(locations[locations["wordcounts"] >= minwc].index)
+        locations_inds = {l:[locations_inds[l], "location"] for l in locations}
+
+        # decades, authors, locations
+        authors_inds = list_group_by(corpusdf["Author"])
+        wcs = []
+        for k,v in authors_inds.items():
+            wcs.append(corpusdf["wordcounts"][v].sum())
+        authors = pd.Series(wcs, index=authors_inds.keys())
+        authors = list(authors[authors >= minwc].index)
+        authors_inds = {a:[authors_inds[a], "author"] for a in authors}
+
+        combined = {**authors_inds, **locations_inds, **decades_inds} 
+        combined = [[k,v[0], v[1]] for k,v in combined.items()]
+        subset_inds = pd.DataFrame(combined, columns= ["name", "inds", "type"])
+        return subset_inds
+
+
     def train_all(self, 
-            doc_sentences,
-            subsets,
+            corpusdf,
             sg = 1,
             window = 15,
             size = 250,
@@ -38,9 +96,19 @@ class Embeddings:
             return fname
 
         self.create_model_dirs()
-        # foreach row
-        for _,row in subsets.iterrows():
-            flat = [s.split() for sentences in doc_sentences[row["inds"]] 
+
+        print("compute subsets") 
+        subset_inds = self.compute_subsets(corpusdf)
+
+        print("preprocess: sentence tokenize, normalize")
+        corpusdf = self.preprocessing(corpusdf)
+
+        # foreach subset
+        print("train subset models")
+        for _,row in subset_inds.iterrows():
+
+            print("... " + row["name"])
+            flat = [s for sentences in corpusdf["docs"].loc[row["inds"]] 
                     for s in sentences]
             model = gensim.models.Word2Vec(flat, sg=sg,
                     window = window, size = size,
@@ -53,11 +121,11 @@ class Embeddings:
                 self.subsets.append((str(row["name"]).replace(" ","_"), 
                     model, row["type"]))
 
-        sentences = [s.split() for sents in doc_sentences for s in sents]
+        print("train full model")
+        sentences = [s for sents in corpusdf["docs"] for s in sents]
         self.model = gensim.models.Word2Vec(sentences, sg=sg,
             window = window, size = size, workers = workers)
         self.model.save(self.models_dir + "/" + "full.model")
-
 
     def load_models(self):
         """
