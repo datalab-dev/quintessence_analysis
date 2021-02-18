@@ -1,14 +1,9 @@
 import re
 
+from gensim.corpora import Dictionary
 import numpy as np
 import nltk
 from nltk.corpus import stopwords
-
-def create_dtm(corpus):
-    dictionary = corpora.Dictionary(corpus)
-    dictionary.filter_extremes(no_below=int(0.01 * len(corpus)), no_above=0.8)
-    dtm = [dictionary.doc2bow(doc) for doc in tokenized]
-    return dictionary, dtm
 
 def normalize_text(text,
         lower = True,
