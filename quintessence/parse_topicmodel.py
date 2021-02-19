@@ -76,7 +76,7 @@ def create_topics (corpusdf, doctopics, dtm, topicterms):
     docs = []
     for i in range(doctopics.shape[1]):
         docs.append({'topicId': i,
-            'proportion': float(proportions[0][i]),
+            'proportion': float(proportions[i]),
             'x': float(coordinates[i][0]),
             'y': float(coordinates[i][1]),
             'topAuthors':  list(
@@ -130,7 +130,7 @@ def compute_topic_proportion (group_indices, doctopics, doc_lens):
     values are mean nonzero proportion
     """
     names = list(group_indices.keys())
-    res = np.zeros((len(names), weighted.shape[1]))
+    res = np.zeros((len(names), doctopics.shape[1]))
 
     i = 0
     for n,indices in group_indices.items():
