@@ -31,10 +31,15 @@ class TopicModel:
 
     def preprocess(self, texts, workers):
         """ called in train """
+        print("normalize")
         normalized = Parallel(n_jobs = workers)(delayed(
             normalize_text)(d) for d in texts)
+        print("construct dictionary")
         dictionary = Dictionary(normalized)
         dictionary.filter_extremes(no_below=int(0.01 * len(normalized)), no_above=0.8)
+        print("make dtm")
+        #dtm = Parallel(n_jobs = workers)(delayed(
+        #    dictionary.doc2bow)(doc) for doc in normalized)
         dtm = [dictionary.doc2bow(doc) for doc in normalized] # for some reason this is faster as list comprehension than 'Parallel'
         return dtm, dictionary
 
@@ -63,7 +68,8 @@ class TopicModel:
         print("training")
         self.model = LdaMallet(mallet_path,
                 corpus=self.dtm, prefix = self.model_dir + "/",
-                          num_topics=num_topics, id2word=self.dictionary)
+                          num_topics=num_topics, id2word=self.dictionary,
+                          workers = 12)
 
         vocab = [t for t in self.dictionary.itervalues()]
         fnames = corpusdf.index
