@@ -96,6 +96,6 @@ class TopicModel:
         Does not require a mallet path
         """
         self.model = LdaMallet.load(self.model_dir + "/mallet.model")
-        self.topicterms = pd.read_csv(self.model_dir + "/tt.csv")
-        self.doctopics = pd.read_csv(self.model_dir + "/dt.csv")
-        self.dtm = pd.read_csv(self.model_dir + "/dtm.csv")
+        self.topicterms = pd.read_csv(self.model_dir + "/tt.csv", index_col=0)
+        self.doctopics = pd.read_csv(self.model_dir + "/dt.csv", index_col="_id")
+        self.dtm = pd.read_csv(self.model_dir + "/dtm.csv", index_col="_id")
