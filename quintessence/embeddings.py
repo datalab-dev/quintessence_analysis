@@ -107,7 +107,7 @@ class Embeddings:
         print("train subset models")
         for _,row in subset_inds.iterrows():
 
-            print("... " + row["name"])
+            print("... " + str(row["name"]))
             flat = [s for sentences in corpusdf["docs"].loc[row["inds"]] 
                     for s in sentences]
             model = gensim.models.Word2Vec(flat, sg=sg,
