@@ -52,7 +52,7 @@ class Mongo:
         df = pd.DataFrame( {'_id': ids, 'docs': docs}).dropna()
         return df.set_index("_id").join(meta)
 
-    def write_topic_model_data(self, lda):
+    def write_topic_model_data(self, corpus, lda):
         """
         Given a trained TopicModel class, create and write all the necessary 
         data to the mongo database.
@@ -63,7 +63,6 @@ class Mongo:
             - topics
         """
 
-        meta = pd.DataFrame.from_records(self.get_metadata())
         # doc.topics
         self.db['docs.topics'].remove({})
         self.db['docs.topics'].insert_many(create_doc_topics(lda.doctopics))
@@ -71,13 +70,13 @@ class Mongo:
         # topic.terms
         self.db['topics.terms'].remove({})
         self.db['topics.terms'].insert_many(
-                create_topic_terms(lda.topicterms, lda.dictionary))
+                create_topic_terms(lda.topicterms))
 
         # topics
         self.db['topics'].remove({})
-        self.db['topics'].insert_many(create_topics(meta,
+        self.db['topics'].insert_many(create_topics(corpus,
             lda.doctopics, 
-            lda.doc_lens, lda.topicterms))
+            lda.dtm, lda.topicterms))
 
     def write_embeddings_data(self, embeddings):
         vocab = get_vocab(embeddings.model)
