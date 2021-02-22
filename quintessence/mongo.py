@@ -1,9 +1,14 @@
+from collections import Counter
 import json
 
-import pandas as pd
+from joblib import delayed
+from joblib import Parallel
+from gensim.corpora import Dictionary
 import numpy as np
+import pandas as pd
 from pymongo import MongoClient
 
+from quintessence.nlp import normalize_text
 from quintessence.parse_topicmodel import create_doc_topics
 from quintessence.parse_topicmodel import create_topic_terms
 from quintessence.parse_topicmodel import create_topics
@@ -52,6 +57,39 @@ class Mongo:
         meta = self.get_metadata()
         df = pd.DataFrame( {'_id': ids, 'docs': docs}).dropna()
         return df.set_index("_id").join(meta)
+
+    def write_word_frequency_data(self):
+        """ ONLY RUN AFTER 'terms' collection exists! ie. after embed """ 
+        corpus = self.get_embeddings_data() #std
+
+        # normalize text
+        docs = corpus["docs"]
+        normalized = [normalize_text(d) for d in docs]
+        corpus["docs"] = normalized
+
+        # add decades and word_count column to metadata
+        corpus["decade"] = corpus["Date"].apply(lambda x: x[0:3] + '0')
+        corpus["word_count"] = corpus["docs"].apply(len)
+
+        # get ndocs / year, ndocs / decade
+        ndocs_per_year = corpus["Date"].value_counts()
+        ndocs_per_decade = corpus["decade"].value_counts()
+
+        # get nterms / year, nterms / decade
+        ntokens_per_year = corpus.groupby["Date"].sum("word_count")
+        ntokens_per_decade = corpus.groupby["decade"].sum("word_count")
+
+        # for each term in terms table, get year:count ... decade:count 
+        # collapse docs on years -> create dtm where rows are years
+        # collapse docs on decades -> create dtm where rows are decades
+        dictionary = Dictionary(normalized)
+        dictionary.doc2bow(doc)
+        dtm = corpus2csc(dtm).T
+        dtm = dtm.toarray()
+        dtm = pd.DataFrame(data = dtm, index=years)
+
+
+        # add terms.frequencies table
 
     def write_topic_model_data(self, corpus, lda):
         """
