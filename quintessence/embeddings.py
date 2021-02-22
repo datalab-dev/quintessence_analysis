@@ -101,7 +101,7 @@ class Embeddings:
         subset_inds = self.compute_subsets(corpusdf)
 
         print("preprocess: sentence tokenize, normalize")
-        corpusdf = self.preprocessing(corpusdf)
+        corpusdf = self.preprocessing(corpusdf ,workers = workers)
 
         # foreach subset
         print("train subset models")
@@ -112,7 +112,8 @@ class Embeddings:
                     for s in sentences]
             model = gensim.models.Word2Vec(flat, sg=sg,
                     window = window, size = size,
-                    workers = workers) 
+                    workers = workers,
+                    max_final_vocab = 100000) 
             model.save(make_filename(row))
 
             if row["type"] == "decade":
@@ -124,7 +125,7 @@ class Embeddings:
         print("train full model")
         sentences = [s for sents in corpusdf["docs"] for s in sents]
         self.model = gensim.models.Word2Vec(sentences, sg=sg,
-            window = window, size = size, workers = workers)
+            window = window, size = size, workers = workers, max_final_vocab=100000)
         self.model.save(self.models_dir + "/" + "full.model")
 
     def load_models(self):
