@@ -6,6 +6,15 @@ from scipy import spatial
 
 from quintessence.alignment import procrustes_alignment
 
+def get_all_vocab(full, subsets, decades):
+    v = set(full.wv.vocab)
+    for s in subsets:
+        v = v.union(v, set(s[1].wv.vocab))
+    for d in decades:
+        v = v.union(v, set(d[1].wv.vocab))
+    vocab = sorted(list(v))
+    return {term:i for i,term in enumerate(vocab)}
+
 def get_vocab(full):
     """ return dictionary id:term """
     vocab = sorted(list(full.wv.vocab))
@@ -23,7 +32,12 @@ def create_terms(full, vocab):
 
     docs = []
     for term,termId in vocab.items():
-        terms, scores = zip(*full.most_similar(term))
+        terms = []
+        scores = []
+        # since terms now include all the terms accross all models, it might not appear in the full model
+        # since the full model only includes the top 100k terms, and full vocab has 400k terms...
+        if term in full.wv.vocab:
+            terms, scores = zip(*full.most_similar(term))
         record = {
                 "termId" : termId,
                 "term" : term,
@@ -100,6 +114,9 @@ def create_similarity_over_time(decades, vocab):
     # base model is the largest
     decades.sort(key=lambda tup: tup[0])
 
+    # remove pre 1470 and post 1700
+    decades = [d for d in decades if int(d[0]) < 1710 and int(d[0]) > 1460]
+
     ## compute alignments
     alignments = []
     for d in decades:
@@ -113,8 +130,8 @@ def create_similarity_over_time(decades, vocab):
                 copy.deepcopy(d[1]))
         alignments.append((base, other))
 
-    # for each term
-    for term,tid in vocab.items():
+    # for each term in 1700 model...
+    for term in decades[-1][1].wv.vocab.keys():
         similarities = [None for i in range(len(alignments))]
 
         for i,align in enumerate(alignments):
@@ -126,7 +143,7 @@ def create_similarity_over_time(decades, vocab):
 
         #  create record, append to docs
         record = {
-                "termId": tid,
+                "termId": vocab[term],
                 "similarities": similarities
                 }
         docs.append(record)
