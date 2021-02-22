@@ -27,8 +27,7 @@ def create_terms(full, vocab):
         record = {
                 "termId" : termId,
                 "term" : term,
-                "freq" : full.wv.vocab[term].count,
-                "neighbors": [vocab[t] for t in terms],
+                "neighbors": list(terms),
                 "scores": list(scores)
                 } 
         docs.append(record)
@@ -79,7 +78,7 @@ def create_nearest_neighbors(subset, vocab, n=10):
         record = {
                 "termId" : termId,
                 "freq": freq,
-                "neighbors": [vocab[t] for t in terms],
+                "neighbors": list(terms),
                 "scores": list(scores)
                 } 
 
