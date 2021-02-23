@@ -1,9 +1,5 @@
-from collections import Counter
-import json
-
 from joblib import delayed
 from joblib import Parallel
-from gensim.corpora import Dictionary
 import numpy as np
 import pandas as pd
 from pymongo import MongoClient
@@ -18,11 +14,14 @@ from quintessence.parse_embed import create_similarity_over_time
 from quintessence.parse_embed import create_subsets
 from quintessence.parse_embed import create_terms
 from quintessence.parse_embed import get_vocab
+from quintessence.wordcounts import create_corpus_frequencies
+from quintessence.wordcounts import create_term_frequencies
 
 class Mongo:
     db = None
+    workers = 4
 
-    def __init__(self, credentials):
+    def __init__(self, credentials, workers=4):
         """ create a connection to the mongo database """
         try:
             client = MongoClient(
@@ -57,39 +56,6 @@ class Mongo:
         meta = self.get_metadata()
         df = pd.DataFrame( {'_id': ids, 'docs': docs}).dropna()
         return df.set_index("_id").join(meta)
-
-    def write_word_frequency_data(self):
-        """ ONLY RUN AFTER 'terms' collection exists! ie. after embed """ 
-        corpus = self.get_embeddings_data() #std
-
-        # normalize text
-        docs = corpus["docs"]
-        normalized = [normalize_text(d) for d in docs]
-        corpus["docs"] = normalized
-
-        # add decades and word_count column to metadata
-        corpus["decade"] = corpus["Date"].apply(lambda x: x[0:3] + '0')
-        corpus["word_count"] = corpus["docs"].apply(len)
-
-        # get ndocs / year, ndocs / decade
-        ndocs_per_year = corpus["Date"].value_counts()
-        ndocs_per_decade = corpus["decade"].value_counts()
-
-        # get nterms / year, nterms / decade
-        ntokens_per_year = corpus.groupby["Date"].sum("word_count")
-        ntokens_per_decade = corpus.groupby["decade"].sum("word_count")
-
-        # for each term in terms table, get year:count ... decade:count 
-        # collapse docs on years -> create dtm where rows are years
-        # collapse docs on decades -> create dtm where rows are decades
-        dictionary = Dictionary(normalized)
-        dictionary.doc2bow(doc)
-        dtm = corpus2csc(dtm).T
-        dtm = dtm.toarray()
-        dtm = pd.DataFrame(data = dtm, index=years)
-
-
-        # add terms.frequencies table
 
     def write_topic_model_data(self, corpus, lda):
         """
@@ -159,3 +125,23 @@ class Mongo:
         self.db['terms.timeseries'].remove({})
         self.db['terms.timeseries'].insert_many(
             create_similarity_over_time(embeddings.decades, vocab))
+
+    def write_frequency_data(self):
+        workers = self.workers
+
+        print("preprocess")
+        corpus = self.get_embeddings_data() # std 
+        corpus["docs"] = Parallel(n_jobs = workers)(delayed(
+            normalize_text)(d) for d in corpus["docs"])
+        corpus["decade"] = corpus["Date"].apply(lambda x: x[0:3] + '0')
+        corpus["word_count"] = corpus["docs"].apply(len)
+
+        print("corpus frequencies")
+        self.db["frequencies.corpus"].remove({})
+        self.db["frequencies.corpus"].insert(
+                create_corpus_frequencies(corpus))
+
+        print("frequencies terms")
+        self.db["frequencies.terms"].remove({})
+        self.db["frequencies.terms"].insert_many(
+                create_term_frequencies(corpus))
