@@ -2,6 +2,20 @@ from gensim.corpora import Dictionary
 from gensim.matutils import corpus2csc
 import pandas as pd
 
+def create_doc_frequencies(corpus):
+    c = corpus[ ["raw_word_count", "word_count"] ]
+
+    res = c.to_dict("index")
+    docs = []
+    for k,v in res.items():
+        record = {
+                "docId": k,
+                "word_count_raw": v["raw_word_count"],
+                "word_count_preprocessed": v["word_count"],
+                }
+        docs.append(record)
+    return docs
+
 def create_corpus_frequencies(corpus):
     ndocs_per_year = corpus["Date"].value_counts()
     ndocs_per_decade = corpus["decade"].value_counts()

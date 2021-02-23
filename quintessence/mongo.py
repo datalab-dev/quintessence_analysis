@@ -15,6 +15,7 @@ from quintessence.parse_embed import create_subsets
 from quintessence.parse_embed import create_terms
 from quintessence.parse_embed import get_vocab
 from quintessence.wordcounts import create_corpus_frequencies
+from quintessence.wordcounts import create_doc_frequencies
 from quintessence.wordcounts import create_term_frequencies
 
 class Mongo:
@@ -131,10 +132,16 @@ class Mongo:
 
         print("preprocess")
         corpus = self.get_embeddings_data() # std 
+        corpus["raw_word_count"] = corpus["docs"].apply(lambda x: len(x.split()))
         corpus["docs"] = Parallel(n_jobs = workers)(delayed(
             normalize_text)(d) for d in corpus["docs"])
         corpus["decade"] = corpus["Date"].apply(lambda x: x[0:3] + '0')
         corpus["word_count"] = corpus["docs"].apply(len)
+
+        print("doc frequencies")
+        self.db["frequencies.docs"].remove({})
+        self.db["frequencies.docs"].insert_many(
+                create_doc_frequencies(corpus))
 
         print("corpus frequencies")
         self.db["frequencies.corpus"].remove({})
