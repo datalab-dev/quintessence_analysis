@@ -7,6 +7,7 @@ from pymongo import MongoClient
 from quintessence.nlp import normalize_text
 from quintessence.parse_topicmodel import create_doc_topics
 from quintessence.parse_topicmodel import create_topic_terms
+from quintessence.parse_topicmodel import create_topic_topterms
 from quintessence.parse_topicmodel import create_topics
 from quintessence.parse_embed import get_all_vocab
 from quintessence.parse_embed import create_nearest_neighbors
@@ -24,6 +25,7 @@ class Mongo:
 
     def __init__(self, credentials, workers=4):
         """ create a connection to the mongo database """
+        self.workers = workers
         try:
             client = MongoClient(
                     f"mongodb://{credentials['host']}:{credentials['port']}")
@@ -69,16 +71,25 @@ class Mongo:
             - topics
         """
 
+        # topic.topterms
+        print("topic top terms")
+        self.db['topics.topterms'].remove({})
+        self.db['topics.topterms'].insert_many(
+                create_topic_topterms(lda.topicterms))
+
         # doc.topics
+        print("doc topics")
         self.db['docs.topics'].remove({})
         self.db['docs.topics'].insert_many(create_doc_topics(lda.doctopics))
 
         # topic.terms
+        print("topic terms")
         self.db['topics.terms'].remove({})
         self.db['topics.terms'].insert_many(
                 create_topic_terms(lda.topicterms))
 
         # topics
+        print("topics")
         self.db['topics'].remove({})
         self.db['topics'].insert_many(create_topics(corpus,
             lda.doctopics, 

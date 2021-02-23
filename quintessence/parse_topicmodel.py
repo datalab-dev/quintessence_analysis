@@ -5,6 +5,26 @@ from sklearn.manifold import MDS
 
 from quintessence.nlp import list_group_by
 
+def create_topic_topterms(topicterms):
+    """ 
+    create topic.topterms
+    topicId: 0
+    terms: [ ]
+    scores: [ ]
+    """
+    tt = np.array(topicterms)
+    inds = np.fliplr(tt.argsort(axis=1))
+
+    docs = []
+    for i,row in enumerate(inds):
+        record = {
+                "topicId": i,
+                "terms:": list(topicterms.columns[row][0:100]),
+                "scores:": list(tt[i][row][0:100])
+                }
+        docs.append(record)
+    return docs
+
 def create_doc_topics (doctopics):
     """
     Create docs.topics data for mongo table
@@ -118,6 +138,8 @@ def compute_top_docs(doctopics):
     dt = np.array(doctopics)
     topdocs = dt.argsort(axis=0)[::-1]
     return topdocs
+
+    return topterms
 
 
 def compute_topic_proportion (group_indices, doctopics, doc_lens):
