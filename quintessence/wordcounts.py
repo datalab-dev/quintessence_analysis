@@ -17,36 +17,33 @@ def create_doc_frequencies(corpus):
     return docs
 
 def create_corpus_frequencies(corpus):
-    ndocs_per_year = corpus["Date"].value_counts()
-    ndocs_per_decade = corpus["decade"].value_counts()
+    df = corpus[ [ "Date", "word_count"] ]
+    groups = df.groupby("Date")
 
-    ntokens_per_year = corpus.groupby("Date").sum("word_count")
-    ntokens_per_decade = corpus.groupby("decade").sum("word_count")
+    nd = pd.DataFrame(groups.size(), columns=["doc_count"])
+    nt = groups.sum()
 
+    b = pd.merge(nd, nt, on="Date")
+    res = b.to_dict()
+    
     record = {
-            "years": list(ndocs_per_year.index),
-            "decades": list(ndocs_per_decade.index),
-            "ntokens_year": list(ntokens_per_year["word_count"]),
-            "ntokens_decade": list(ntokens_per_decade["word_count"]),
-            "ndocs_year":  list(ndocs_per_year),
-            "ndocs_decade":  list(ndocs_per_decade)
+            "word_count": res["word_count"],
+            "doc_count": res["doc_count"]
             }
 
     return record
 
 def create_term_frequencies(corpus, nterms=200000):
     year_terms = compute_year_term_df(corpus, nterms)
-    decade_terms = convert_to_decade_term_df(year_terms)
 
     docs = []
     for term in year_terms: 
         years = year_terms[term]
-        decades = year_terms[term]
+        res = years.to_dict()
 
         record = {
                 "term": term,
-                "years_freq": list(years),
-                "decades_freq": list(decades)
+                "freq": res,
                 }
         docs.append(record)
     return docs
@@ -61,9 +58,3 @@ def compute_year_term_df(corpus, nterms):
     dtm = corpus2csc(docs).todense().T
     dtm = pd.DataFrame(index = years.index, data=dtm, columns=terms)
     return dtm
-
-def convert_to_decade_term_df(df):
-    df = df.copy()
-    df.index = df.index.map(lambda x: x[0:3] + '0')
-    return df.groupby("Date").sum()
-

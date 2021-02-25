@@ -146,7 +146,6 @@ class Mongo:
         corpus["raw_word_count"] = corpus["docs"].apply(lambda x: len(x.split()))
         corpus["docs"] = Parallel(n_jobs = workers)(delayed(
             normalize_text)(d) for d in corpus["docs"])
-        corpus["decade"] = corpus["Date"].apply(lambda x: x[0:3] + '0')
         corpus["word_count"] = corpus["docs"].apply(len)
 
         print("doc frequencies")
