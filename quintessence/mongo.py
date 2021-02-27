@@ -60,7 +60,7 @@ class Mongo:
         df = pd.DataFrame( {'_id': ids, 'docs': docs}).dropna()
         return df.set_index("_id").join(meta)
 
-    def write_topic_model_data(self, corpus, lda):
+    def write_topic_model_data(self, lda):
         """
         Given a trained TopicModel class, create and write all the necessary 
         data to the mongo database.
@@ -91,7 +91,7 @@ class Mongo:
         # topics
         print("topics")
         self.db['topics'].remove({})
-        self.db['topics'].insert_many(create_topics(corpus,
+        self.db['topics'].insert_many(create_topics(lda.meta,
             lda.doctopics, 
             lda.dtm, lda.topicterms))
 

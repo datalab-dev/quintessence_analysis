@@ -37,7 +37,11 @@ def create_doc_topics (doctopics):
     """
     docs = []
     for i,topics in enumerate(doctopics.to_records()):
-        docs.append({'_id': i, 'topics': list(topics)})
+        record = {
+                "_id": i,
+                "topics": [t.item() for t in topics] # convert numpy int64 to int
+                }
+        docs.append(record)
     return docs
 
 def create_topic_terms (topicterms):
@@ -59,7 +63,7 @@ def create_topic_terms (topicterms):
         docs.append({'_id': i, 'terms': terms, 'scores': list(scores)})
     return docs
 
-def create_topics (corpusdf, doctopics, dtm, topicterms):
+def create_topics (meta, doctopics, dtm, topicterms):
     """
     Create topics data for mongo table
 
@@ -83,7 +87,9 @@ def create_topics (corpusdf, doctopics, dtm, topicterms):
     coordinates = compute_coordinates(topicterms)
     topdocs = compute_top_docs(doctopics)
 
-    subsets = subset_proportions(corpusdf, doctopics, doc_lens)
+    meta["Date"] = meta["Date"].astype('str')
+    meta["Date"] = meta["Date"].apply(lambda x: x.split('.')[0])
+    subsets = subset_proportions(meta, doctopics, doc_lens)
     authors = subsets[0]
     locations = subsets[1]
     keywords = subsets[2]
@@ -136,9 +142,6 @@ def compute_top_docs(doctopics):
     topdocs = dt.argsort(axis=0)[::-1]
     return topdocs
 
-    return topterms
-
-
 def compute_topic_proportion (group_indices, doctopics, doc_lens):
     """
     For the given group indices, compute proportion for each 
@@ -160,7 +163,7 @@ def compute_topic_proportion (group_indices, doctopics, doc_lens):
 
     return pd.DataFrame(res, index=names)
 
-def subset_proportions(corpus, doctopics, doc_lens):
+def subset_proportions(meta, doctopics, doc_lens):
     """  
     for each metadata grouping (e.g London, 'John Donne etc) 
     compute topic prorportions
@@ -168,10 +171,10 @@ def subset_proportions(corpus, doctopics, doc_lens):
     return list of dataframes
     """
     # get inds for each unique value
-    authors_inds = list_group_by(corpus["Author"])
-    locations_inds = corpus.groupby("Location").groups
-    keywords_inds = list_group_by(corpus["Keywords"])
-    dates_inds = corpus.groupby("Date").groups
+    authors_inds = list_group_by(meta["Author"])
+    locations_inds = meta.groupby("Location").groups
+    keywords_inds = list_group_by(meta["Keywords"])
+    dates_inds = meta.groupby("Date").groups
 
     # compute mean nonzero proportion foreach subset
     authors = compute_topic_proportion(authors_inds, doctopics, doc_lens)

@@ -27,6 +27,7 @@ class TopicModel:
         self.doctopics = pd.DataFrame()
         self.topicterms = pd.DataFrame()
         self.dtm = pd.DataFrame()
+        self.meta = pd.DataFrame()
 
 
     def preprocess(self, texts, workers):
@@ -43,7 +44,7 @@ class TopicModel:
         dtm = [dictionary.doc2bow(doc) for doc in normalized] # for some reason this is faster as list comprehension than 'Parallel'
         return dtm, dictionary
 
-    def train(self, corpusdf, mallet_path, num_topics, workers=4):
+    def train(self, corpusdf, mallet_path, num_topics, workers=4, mallet_workers=24):
         """
         Train topic model using mallet.
 
@@ -59,6 +60,7 @@ class TopicModel:
         os.makedirs(self.model_dir)
 
         mallet_path = os.path.abspath(os.path.expanduser(mallet_path)) 
+        self.meta = corpusdf.loc[:, corpusdf.columns != 'docs'] 
 
         print("preprocessing")
         self.dtm,self.dictionary = self.preprocess(corpusdf["docs"], workers)
@@ -69,7 +71,7 @@ class TopicModel:
         self.model = LdaMallet(mallet_path,
                 corpus=self.dtm, prefix = self.model_dir + "/",
                           num_topics=num_topics, id2word=self.dictionary,
-                          workers = 12)
+                          workers = mallet_workers)
 
         vocab = [t for t in self.dictionary.itervalues()]
         fnames = corpusdf.index
@@ -90,6 +92,7 @@ class TopicModel:
         # save model, dtm, topicterms, doctopics
         print("saving to disk")
         self.model.save(self.model_dir + "/mallet.model") 
+        self.meta.to_csv(self.model_dir + "/meta.csv")
         self.topicterms.to_csv(self.model_dir + "/tt.csv")
         self.doctopics.to_csv(self.model_dir + "/dt.csv")
         self.dtm.to_csv(self.model_dir + "/dtm.csv")
@@ -102,6 +105,7 @@ class TopicModel:
         Does not require a mallet path
         """
         self.model = LdaMallet.load(self.model_dir + "/mallet.model")
+        self.meta = pd.read_csv(self.model_dir + "/meta.csv", index_col="_id")
         self.topicterms = pd.read_csv(self.model_dir + "/tt.csv", index_col=0)
         self.doctopics = pd.read_csv(self.model_dir + "/dt.csv", index_col="_id")
         self.dtm = pd.read_csv(self.model_dir + "/dtm.csv", index_col="_id")
