@@ -8,7 +8,7 @@ from quintessence.nlp import list_group_by
 def create_topic_topterms(topicterms):
     """ 
     create topic.topterms
-    topicId: 0
+    _id: 0
     terms: [ ]
     scores: [ ]
     """
@@ -18,9 +18,9 @@ def create_topic_topterms(topicterms):
     docs = []
     for i,row in enumerate(inds):
         record = {
-                "topicId": i,
-                "terms:": list(topicterms.columns[row][0:100]),
-                "scores:": list(tt[i][row][0:100])
+                "_id": i,
+                "terms": list(topicterms.columns[row][0:100]),
+                "scores": list(tt[i][row][0:100])
                 }
         docs.append(record)
     return docs
@@ -31,16 +31,13 @@ def create_doc_topics (doctopics):
 
     doc.topics
     _id: 0,
-    topics: [
-       (0, 0.05),
-       ...
-      ]
+    topics: [0.04 ...]
 
     returns list of dicts
     """
     docs = []
-    for ind,v in doctopics.to_dict('index').items():
-        docs.append({'_id': ind, 'topics': list(v.items())})
+    for i,topics in enumerate(doctopics.to_records()):
+        docs.append({'_id': i, 'topics': list(topics)})
     return docs
 
 def create_topic_terms (topicterms):
@@ -48,18 +45,18 @@ def create_topic_terms (topicterms):
     Create topic.terms data for mongo table
 
     topic.terms
-    topicId: 0,
-    terms: [
-        ("abate", 0.01),
-        ...
+    _id: 0,
+    terms: ["abate", ... ],
+    scores: [0.01, ... ],
     ]
 
     returns list of dicts
     """
 
+    terms = list(topicterms.columns)
     docs = []
-    for ind,v in topicterms.to_dict('index').items():
-        docs.append({'_id': ind, 'terms': list(v.items())})
+    for i,scores in enumerate(topicterms.to_records(index=False)):
+        docs.append({'_id': i, 'terms': terms, 'scores': list(scores)})
     return docs
 
 def create_topics (corpusdf, doctopics, dtm, topicterms):
@@ -67,7 +64,7 @@ def create_topics (corpusdf, doctopics, dtm, topicterms):
     Create topics data for mongo table
 
     Create topics
-    topicId: 0,
+    _id: 0,
     proportion: 0.0294,
     x: -0.13,
     y: 0.115,
@@ -95,7 +92,7 @@ def create_topics (corpusdf, doctopics, dtm, topicterms):
     # foreach topic
     docs = []
     for i in range(doctopics.shape[1]):
-        docs.append({'topicId': i,
+        docs.append({'_id': i,
             'proportion': float(proportions[i]),
             'x': float(coordinates[i][0]),
             'y': float(coordinates[i][1]),
