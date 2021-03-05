@@ -5,10 +5,7 @@ import pandas as pd
 from pymongo import MongoClient
 
 from quintessence.nlp import normalize_text
-from quintessence.parse_topicmodel import create_doc_topics
-from quintessence.parse_topicmodel import create_topic_terms
-from quintessence.parse_topicmodel import create_topic_topterms
-from quintessence.parse_topicmodel import create_topics
+from quintessence.parse_topicmodel import create_topicmodel_datamodel
 from quintessence.parse_embed import get_all_vocab
 from quintessence.parse_embed import create_nearest_neighbors
 from quintessence.parse_embed import create_similarity_over_time
@@ -64,36 +61,14 @@ class Mongo:
         """
         Given a trained TopicModel class, create and write all the necessary 
         data to the mongo database.
-    
-        tables that are overwritten (deleted then created)
-            - doc.topics
-            - topic.terms
-            - topics
         """
+        collections = create_topicmodel_datamodel(lda.doctopics, 
+                lda.topicterms, lda.meta, lda.dtm)
 
-        # topic.topterms
-        print("topic top terms")
-        self.db['topics.topterms'].remove({})
-        self.db['topics.topterms'].insert_many(
-                create_topic_topterms(lda.topicterms))
-
-        # doc.topics
-        print("doc topics")
-        self.db['topics.doctopics'].remove({})
-        self.db['topics.doctopics'].insert_many(create_doc_topics(lda.doctopics))
-
-        # topic.terms
-        print("topic terms")
-        self.db['topics.terms'].remove({})
-        self.db['topics.terms'].insert_many(
-                create_topic_terms(lda.topicterms))
-
-        # topics
-        print("topics")
-        self.db['topics'].remove({})
-        self.db['topics'].insert_many(create_topics(lda.meta,
-            lda.doctopics, 
-            lda.dtm, lda.topicterms))
+        for collection_name, documents  in collections.items():
+            print(collection_name)
+            self.db[collection_name].remove({})
+            self.db[collection_name].insert_many(documents)
 
     def write_embeddings_data(self, embeddings):
         print("get vocab")

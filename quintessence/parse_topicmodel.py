@@ -5,9 +5,27 @@ from sklearn.manifold import MDS
 
 from quintessence.nlp import list_group_by
 
-def create_topic_topterms(topicterms):
+
+def create_topicmodel_datamodel(doctopics, topicterms, meta, dtm):
+    collections = {}
+
+    # topics
+    collections["topics"] = create_topics(meta, doctopics, dtm, topicterms)
+
+    # topics.topterms
+    collections["topics.topterms"] = create_topics_topterms(topicterms)
+
+    # topics.doctopics
+    collections["topics.doctopics"] = create_topics_doctopics(doctopics)
+
+    # topics.termstopics
+    collections["topics.termstopics"] = create_topics_termstopics(topicterms)
+
+    return collections
+
+def create_topics_topterms(topicterms, nterms=100):
     """ 
-    create topic.topterms
+    create topics.topterms
     _id: 0
     terms: [ ]
     scores: [ ]
@@ -19,48 +37,48 @@ def create_topic_topterms(topicterms):
     for i,row in enumerate(inds):
         record = {
                 "_id": i,
-                "terms": list(topicterms.columns[row][0:100]),
-                "scores": list(tt[i][row][0:100])
+                "terms": list(topicterms.columns[row][0:nterms]),
+                "scores": list(tt[i][row][0:nterms])
                 }
         docs.append(record)
     return docs
 
-def create_doc_topics (doctopics):
+def create_topics_doctopics (doctopics):
     """
-    Create docs.topics data for mongo table
+    Create topics.doctopics data for mongo table
 
-    doc.topics
-    _id: 0,
-    topics: [0.04 ...]
+    topics.doctopics
+    _id: 0, (document id)
+    topic_distribution: [0.04 ...]
 
     returns list of dicts
     """
     docs = []
-    for i,topics in enumerate(doctopics.to_records()):
+    for i,topics in enumerate(doctopics.to_records(index=False)):
         record = {
                 "_id": i,
-                "topics": [t.item() for t in topics] # convert numpy int64 to int
+                "topic_distribution": [t.item() for t in topics] # convert numpy int64 to int
                 }
         docs.append(record)
     return docs
 
-def create_topic_terms (topicterms):
+def create_topics_termstopics(topicterms):
     """
-    Create topic.terms data for mongo table
+    Create topics.termstopics data for mongo table
 
-    topic.terms
-    _id: 0,
-    terms: ["abate", ... ],
-    scores: [0.01, ... ],
-    ]
+    topics.
+    _id: "abate",
+    topic_scores: [0.01, ...]
 
     returns list of dicts
     """
-
-    terms = list(topicterms.columns)
     docs = []
-    for i,scores in enumerate(topicterms.to_records(index=False)):
-        docs.append({'_id': i, 'terms': terms, 'scores': list(scores)})
+    for term in topicterms:
+        record = {
+                "_id": term,
+                "topic_scores": list(topicterms[term])
+                }
+        docs.append(record)
     return docs
 
 def create_topics (meta, doctopics, dtm, topicterms):
