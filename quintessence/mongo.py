@@ -66,7 +66,6 @@ class Mongo:
                 lda.topicterms, lda.meta, lda.dtm)
 
         for collection_name, documents  in collections.items():
-            print(collection_name)
             self.db[collection_name].remove({})
             self.db[collection_name].insert_many(documents)
 

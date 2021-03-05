@@ -10,15 +10,19 @@ def create_topicmodel_datamodel(doctopics, topicterms, meta, dtm):
     collections = {}
 
     # topics
+    print("topics")
     collections["topics"] = create_topics(meta, doctopics, dtm, topicterms)
 
     # topics.topterms
+    print("topics.topterms")
     collections["topics.topterms"] = create_topics_topterms(topicterms)
 
     # topics.doctopics
+    print("topic.doctopics")
     collections["topics.doctopics"] = create_topics_doctopics(doctopics)
 
     # topics.termstopics
+    print("topics.termstopics")
     collections["topics.termstopics"] = create_topics_termstopics(topicterms)
 
     return collections
