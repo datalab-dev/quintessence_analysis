@@ -124,9 +124,9 @@ class Embeddings:
 
         print("train full model")
         sentences = [s for sents in corpusdf["docs"] for s in sents]
-        self.model = gensim.models.Word2Vec(sentences, sg=sg,
+        self.full = gensim.models.Word2Vec(sentences, sg=sg,
             window = window, size = size, workers = workers, max_final_vocab=100000)
-        self.model.save(self.models_dir + "/" + "full.model")
+        self.full.save(self.models_dir + "/" + "full.model")
 
     def load_models(self):
         """
@@ -139,11 +139,10 @@ class Embeddings:
 
         """
 
-        self.model = None
         self.subsets = []
 
         # full
-        self.model = gensim.models.Word2Vec.load(self.models_dir + "/full.model")
+        self.full = gensim.models.Word2Vec.load(self.models_dir + "/full.model")
 
         #subsets
         models = list(pathlib.Path(self.models_dir).rglob("*.model"))
