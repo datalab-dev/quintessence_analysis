@@ -55,7 +55,7 @@ def create_nearest_neighbors(full, subsets, decades, vocab):
         return {
                 "terms": list(terms),
                 "scores": list(scores),
-                "freqs": [model.wv.vocab[t].count for t in terms]
+                "freqs": [model.wv.vocab[t].count for t in terms],
                 "freq": model.wv.vocab[term].count
                 }
 
