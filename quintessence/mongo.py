@@ -1,20 +1,14 @@
-from joblib import delayed
-from joblib import Parallel
-import numpy as np
 import pandas as pd
 from pymongo import MongoClient
 
-from quintessence.nlp import normalize_text
 from quintessence.parse_topicmodel import create_topicmodel_datamodel
+from quintessence.wordcounts import create_frequencies_datamodel
 from quintessence.parse_embed import get_all_vocab
 from quintessence.parse_embed import create_nearest_neighbors
 from quintessence.parse_embed import create_similarity_over_time
 from quintessence.parse_embed import create_subsets
 from quintessence.parse_embed import create_terms
 from quintessence.parse_embed import get_vocab
-from quintessence.wordcounts import create_corpus_frequencies
-from quintessence.wordcounts import create_doc_frequencies
-from quintessence.wordcounts import create_term_frequencies
 
 class Mongo:
     db = None
@@ -113,26 +107,10 @@ class Mongo:
             create_similarity_over_time(embeddings.decades, vocab))
 
     def write_frequency_data(self):
-        workers = self.workers
+        collections = create_frequencies_datamodel(
+                corpus=self.get_embeddings_data(),
+                workers =  self.workers)
 
-        print("preprocess")
-        corpus = self.get_embeddings_data() # std 
-        corpus["raw_word_count"] = corpus["docs"].apply(lambda x: len(x.split()))
-        corpus["docs"] = Parallel(n_jobs = workers)(delayed(
-            normalize_text)(d) for d in corpus["docs"])
-        corpus["word_count"] = corpus["docs"].apply(len)
-
-        print("doc frequencies")
-        self.db["frequencies.docs"].remove({})
-        self.db["frequencies.docs"].insert_many(
-                create_doc_frequencies(corpus))
-
-        print("corpus frequencies")
-        self.db["frequencies.corpus"].remove({})
-        self.db["frequencies.corpus"].insert(
-                create_corpus_frequencies(corpus))
-
-        print("frequencies terms")
-        self.db["frequencies.terms"].remove({})
-        self.db["frequencies.terms"].insert_many(
-                create_term_frequencies(corpus))
+        for collection_name, documents  in collections.items():
+            self.db[collection_name].remove({})
+            self.db[collection_name].insert_many(documents)

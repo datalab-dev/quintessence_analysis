@@ -1,6 +1,33 @@
 from gensim.corpora import Dictionary
 from gensim.matutils import corpus2csc
+from joblib import delayed
+from joblib import Parallel
 import pandas as pd
+
+from quintessence.nlp import normalize_text
+
+def create_frequencies_datamodel(corpus, workers=4):
+    collections = {}
+
+    print("preprocess")
+    corpus["raw_word_count"] = corpus["docs"].apply(lambda x: len(x.split()))
+    corpus["docs"] = Parallel(n_jobs=workers)(delayed(
+        normalize_text(d) for d in corpus["docs"]))
+    corpus["Word_count"] = corpus["docs"].apply(len)
+
+    # frequencies.docs
+    print("doc frequences")
+    collections["frequences.docs"] = create_doc_frequencies(corpus)
+
+    # frequencies.corpus
+    print("corpus frequencies")
+    collections["frequences.corpus"] = create_corpus_frequencies(corpus)
+
+    # frequencies.terms
+    print("term frequencies")
+    collections["frequences.terms"] = create_term_frequencies(corpus)
+
+    return collections
 
 def create_doc_frequencies(corpus):
     c = corpus[ ["raw_word_count", "word_count"] ]
@@ -9,7 +36,7 @@ def create_doc_frequencies(corpus):
     docs = []
     for k,v in res.items():
         record = {
-                "docId": k,
+                "_id": k,
                 "word_count_raw": v["raw_word_count"],
                 "word_count_preprocessed": v["word_count"],
                 }
@@ -42,7 +69,7 @@ def create_term_frequencies(corpus, nterms=200000):
         res = years.to_dict()
 
         record = {
-                "term": term,
+                "_id": term,
                 "freq": res,
                 }
         docs.append(record)
