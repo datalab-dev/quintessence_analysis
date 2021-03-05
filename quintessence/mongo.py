@@ -1,14 +1,9 @@
 import pandas as pd
 from pymongo import MongoClient
 
+from quintessence.parse_embed import create_embeddings_datamodel
 from quintessence.parse_topicmodel import create_topicmodel_datamodel
 from quintessence.wordcounts import create_frequencies_datamodel
-from quintessence.parse_embed import get_all_vocab
-from quintessence.parse_embed import create_nearest_neighbors
-from quintessence.parse_embed import create_similarity_over_time
-from quintessence.parse_embed import create_subsets
-from quintessence.parse_embed import create_terms
-from quintessence.parse_embed import get_vocab
 
 class Mongo:
     db = None
@@ -64,47 +59,12 @@ class Mongo:
             self.db[collection_name].insert_many(documents)
 
     def write_embeddings_data(self, embeddings):
-        print("get vocab")
-        vocab = get_all_vocab(embeddings.model, embeddings.subsets, embeddings.decades)
+        collections = create_embeddings_datamodel(embeddings.full,
+                embeddings.subsets, embeddings.decades)
 
-        # terms
-        print("terms")
-        self.db['terms'].remove({})
-        self.db['terms'].insert_many(create_terms(embeddings.model, vocab))
-
-        # terms.subsets
-        print("subsets")
-        self.db['terms.subsets'].remove({})
-        self.db['terms.subsets'].insert_many(create_subsets(embeddings.subsets))
-
-        # nearest neighbors
-        collections = self.db.list_collection_names()
-
-        print("nearest neighbors subsets")
-        ## subsets
-        subset_collections = [c for c in collections if "terms.subset." in c]
-        for sc in subset_collections:
-            self.db[sc].remove({})
-        for s in embeddings.subsets:
-            # terms.subset.name
-            self.db["terms.subset." + s[0]].insert_many(
-                create_nearest_neighbors(s, vocab))
-
-        ## decades
-        print("nearest neighbors decades")
-        decades_collections = [c for c in collections if "terms.decade." in c]
-        for dc in decades_collections:
-            self.db[dc].remove({})
-        for d in embeddings.decades:
-            # terms.decade.name
-            self.db["terms.decade." + d[0]].insert_many(
-                create_nearest_neighbors(d, vocab))
-
-        # terms.timeseries
-        print("time series")
-        self.db['terms.timeseries'].remove({})
-        self.db['terms.timeseries'].insert_many(
-            create_similarity_over_time(embeddings.decades, vocab))
+        for collection_name, documents  in collections.items():
+            self.db[collection_name].remove({})
+            self.db[collection_name].insert_many(documents)
 
     def write_frequency_data(self):
         collections = create_frequencies_datamodel(
