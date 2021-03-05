@@ -40,8 +40,8 @@ def create_subsets(subsets):
     docs = []
     for name,_,stype in subsets:
         record = {
-                "_id": name
-                "type": stype,
+                "_id": name,
+                "type": stype
                 }
         docs.append(record)
         index+=1
