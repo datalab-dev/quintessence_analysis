@@ -79,8 +79,8 @@ class Mongo:
 
         # doc.topics
         print("doc topics")
-        self.db['docs.topics'].remove({})
-        self.db['docs.topics'].insert_many(create_doc_topics(lda.doctopics))
+        self.db['topics.doctopics'].remove({})
+        self.db['topics.doctopics'].insert_many(create_doc_topics(lda.doctopics))
 
         # topic.terms
         print("topic terms")
