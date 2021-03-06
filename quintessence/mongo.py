@@ -1,3 +1,5 @@
+import re
+
 import pandas as pd
 from pymongo import MongoClient
 
@@ -18,6 +20,14 @@ class Mongo:
             self.db = client[credentials['database']]
         except pymongo.errors.ConnectionFailure:
             print(f"Failed to connect to {url}")
+
+    def clear_collections (self):
+        """ clear all the collections created by quintessence """
+        collections = self.db.list_collection_names()
+        filtered = [c for c in collections 
+                if re.search('(^topics)|(^terms)|(^frequencies)', c)]
+        for f in filtered:
+            con.db[f].drop()
 
 
     def get_metadata(self):
@@ -55,7 +65,7 @@ class Mongo:
                 lda.topicterms, lda.meta, lda.dtm)
 
         for collection_name, documents  in collections.items():
-            self.db[collection_name].remove({})
+            self.db[collection_name].drop()
             self.db[collection_name].insert_many(documents)
 
     def write_embeddings_data(self, embeddings):
@@ -63,7 +73,7 @@ class Mongo:
                 embeddings.subsets, embeddings.decades)
 
         for collection_name, documents  in collections.items():
-            self.db[collection_name].remove({})
+            self.db[collection_name].drop()
             self.db[collection_name].insert_many(documents)
 
     def write_frequency_data(self):
@@ -72,5 +82,5 @@ class Mongo:
                 workers =  self.workers)
 
         for collection_name, documents  in collections.items():
-            self.db[collection_name].remove({})
+            self.db[collection_name].drop()
             self.db[collection_name].insert_many(documents)
