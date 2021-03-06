@@ -128,22 +128,20 @@ def create_similarity_over_time(decades):
     # for each term in 1700 model...
     docs = []
     for term in decades[-1][1].wv.vocab.keys():
-        similarities = [None for i in range(len(alignments))]
-        dec = []
+        similarities = {}
 
         for i,align in enumerate(alignments):
             if term in align[0].wv.vocab.keys():
                 ind = align[0].wv.vocab[term].index
-                similarities[i] = 1 - spatial.distance.cosine(
+                dist = 1 - spatial.distance.cosine(
                         align[0].wv.vectors[ind,],
                         align[1].wv.vectors[ind,])
-                dec.append(align[2])
+                similarities[align[2]] = 1 - dist
 
         #  create record, append to docs
         record = {
                 "_id": term,
                 "timeseries": similarities,
-                "decades": dec
                 }
         docs.append(record)
     return docs
