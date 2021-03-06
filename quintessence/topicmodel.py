@@ -1,3 +1,4 @@
+from ast import literal_eval
 import os
 import pathlib
 import shutil
@@ -105,7 +106,10 @@ class TopicModel:
         Does not require a mallet path
         """
         self.model = LdaMallet.load(self.model_dir + "/mallet.model")
-        self.meta = pd.read_csv(self.model_dir + "/meta.csv", index_col="_id")
+        self.meta = pd.read_csv(self.model_dir + "/meta.csv", index_col="_id", converters={
+            "Keywords": literal_eval, 
+            "Author": literal_eval, 
+            "Languages": literal_eval})
         self.topicterms = pd.read_csv(self.model_dir + "/tt.csv", index_col=0)
         self.doctopics = pd.read_csv(self.model_dir + "/dt.csv", index_col="_id")
         self.dtm = pd.read_csv(self.model_dir + "/dtm.csv", index_col="_id")
