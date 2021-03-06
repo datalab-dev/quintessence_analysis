@@ -12,20 +12,20 @@ def create_frequencies_datamodel(corpus, workers=4):
     print("preprocess")
     corpus["raw_word_count"] = corpus["docs"].apply(lambda x: len(x.split()))
     corpus["docs"] = Parallel(n_jobs=workers)(delayed(
-        normalize_text(d) for d in corpus["docs"]))
-    corpus["Word_count"] = corpus["docs"].apply(len)
+        normalize_text)(d) for d in corpus["docs"])
+    corpus["word_count"] = corpus["docs"].apply(len)
 
     # frequencies.docs
     print("doc frequences")
-    collections["frequences.docs"] = create_doc_frequencies(corpus)
+    collections["frequencies.docs"] = create_doc_frequencies(corpus)
 
     # frequencies.corpus
     print("corpus frequencies")
-    collections["frequences.corpus"] = create_corpus_frequencies(corpus)
+    collections["frequencies.corpus"] = create_corpus_frequencies(corpus)
 
     # frequencies.terms
     print("term frequencies")
-    collections["frequences.terms"] = create_term_frequencies(corpus)
+    collections["frequencies.terms"] = create_term_frequencies(corpus)
 
     return collections
 
@@ -53,12 +53,14 @@ def create_corpus_frequencies(corpus):
     b = pd.merge(nd, nt, on="Date")
     res = b.to_dict()
     
+    docs = []
     record = {
             "word_count": res["word_count"],
             "doc_count": res["doc_count"]
             }
 
-    return record
+    docs.append(record)
+    return docs
 
 def create_term_frequencies(corpus, nterms=200000):
     year_terms = compute_year_term_df(corpus, nterms)
