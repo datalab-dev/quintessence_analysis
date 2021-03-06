@@ -80,7 +80,7 @@ def create_nearest_neighbors(full, subsets, decades, vocab):
                 if s[2] == "author":
                     if "authors" not in record.keys():
                         record["authors"] = {} 
-                    record["authors"][s[0]]["freq"] = freq
+                    record["authors"][s[0]] = create_neighbors_record(term, s[1])
 
         # for decades
         for d in decades:
