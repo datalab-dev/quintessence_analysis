@@ -27,7 +27,7 @@ class Mongo:
         filtered = [c for c in collections 
                 if re.search('(^topics)|(^terms)|(^frequencies)', c)]
         for f in filtered:
-            con.db[f].drop()
+            self.db[f].drop()
 
 
     def get_metadata(self):
