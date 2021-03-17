@@ -51,7 +51,7 @@ def create_subsets(subsets):
 def create_nearest_neighbors(full, subsets, decades, vocab):
 
     def create_neighbors_record(term, model):
-        terms, scores = zip(*model.wv.most_similar(term))
+        terms, scores = zip(*model.wv.most_similar(term, topn=30))
         return {
                 "terms": list(terms),
                 "scores": list(scores),
