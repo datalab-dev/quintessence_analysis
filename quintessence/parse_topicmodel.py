@@ -32,6 +32,9 @@ def create_topicmodel_datamodel(doctopics, topicterms, meta, dtm):
     print("topics.coordinates")
     collections["topics.coordinates"] = create_topics_coordinates(topicterms)
 
+    print("topics.toprelevanceterms")
+    collections["topics.toprelevanceterms"] = create_topics_toptermsrelevances(topicterms, dtm, doctopics)
+
     # topics.topterms
     print("topics.topterms")
     collections["topics.topterms"] = create_topics_topterms(topicterms)
@@ -239,6 +242,66 @@ def create_topics_decades_info(meta, doctopics, dtm):
                 }
         docs.append(record)
                                             
+    return docs
+
+def create_topics_toptermsrelevances(topicterms, dtm, doctopics):
+    """ 
+      Term relevance is defined as an interpolation between log(P(term|topic)) and
+      log(P(term|topic) / P(term)). The interpolation is parameterized with a lambda
+      term between 0 and 1. We compute:
+
+      relevance(word, topic | lambda) =
+           lambda * log(P(term|topic)) + (1 - lambda) * log(lift(term, topic))
+      where lift(term, topic) = P(term|topic) / P(term).
+
+    """
+    #  term count / total count 
+    p_term = dtm.sum(axis=0) / dtm.sum().sum()
+
+    # add smoothing to topicterms
+    # default in mallet is 0.01
+    tt = topicterms + 0.01
+    tt = tt.div(tt.sum(axis=1), axis=0)
+
+    # topic freq
+    topic_freq = doctopics.multiply(dtm.sum(axis=1), axis=0).sum(axis=0)
+    topic_freq.index = topic_freq.index.astype(int)
+
+    # topic proportion
+    proportion  = compute_proportions(doctopics, dtm.sum(axis=1))
+
+
+    # term topic freq (an estimate, could use model.wordstopics but its not the same... better would be an average over iterations after stable)
+    term_topic_freq = tt.multiply(topic_freq.values, axis=0)
+
+    # term freq
+    # note its NOT: tf = dtm.sum(axis=0) because won't match; same workaround as ldavis uses in source code...
+    tf = term_topic_freq.sum(axis=0)
+ 
+    docs = []
+    for topic in range(topicterms.shape[0]):
+        topic_term_ranks = {}
+        p_term_topic = tt.loc[0]
+        lift = np.divide(p_term_topic, p_term)
+
+        for step,lam in enumerate(np.arange(0, 1.1, step=0.1)):
+            lam = round(lam, 1)
+            term_topic_relevance = lam * np.log(p_term_topic) + (1 - lam) * np.log(lift)
+            topterms = term_topic_relevance.sort_values(ascending=False).head(30)
+            topic_term_ranks[str(step)] = {
+               "lambda": lam,
+               "terms" : topterms.index.to_list(),
+               "relevances" : topterms.to_list(),
+               "estimatedTermFreqTopic" : term_topic_freq.loc[topic][topterms.index].to_list(),
+               "overallFreq" : tf.loc[topterms.index].to_list()
+            }
+
+        record = {
+                "_id": topic,
+                "topterms": topic_term_ranks
+                }
+        docs.append(record)
+ 
     return docs
 
 def compute_proportions(doctopics, doc_lens):
