@@ -7,11 +7,30 @@ from quintessence.nlp import list_group_by
 
 
 def create_topicmodel_datamodel(doctopics, topicterms, meta, dtm):
+
+    # create Decade column
+    meta["Date"] = meta["Date"].astype('str')
+    meta["Date"] = meta["Date"].replace( {'nan': '0000'} )
+    meta["Date"] = meta["Date"].apply(lambda x: x.split('.')[0])
+    meta["Decade"] = meta["Date"].apply(lambda x: x[0:3] + "0")
+
     collections = {}
 
-    # topics
-    print("topics")
-    collections["topics"] = create_topics(meta, doctopics, dtm, topicterms)
+    # topics.info
+    print("topics.info")
+    collections["topics.info"] = create_topics_info(meta, doctopics, dtm)
+
+    # topics.decades
+    print("topics.decades")
+    collections["topics.decades"] = create_topics_decades_info(meta, doctopics, dtm)
+
+    # topics.proportions
+    print("topics.proportions")
+    collections["topics.proportions"] = create_topics_proportions(doctopics, dtm, meta)
+
+    # topics.coordinates
+    print("topics.coordinates")
+    collections["topics.coordinates"] = create_topics_coordinates(topicterms)
 
     # topics.topterms
     print("topics.topterms")
@@ -26,6 +45,38 @@ def create_topicmodel_datamodel(doctopics, topicterms, meta, dtm):
     collections["topics.termstopics"] = create_topics_termstopics(topicterms)
 
     return collections
+
+def create_topics_proportions(doctopics, dtm, meta):
+    """ 
+    create topics.proportions 
+    _id: 0
+    proportion:
+    decades: {
+        1470: 0.03,
+        1480: 0.04,
+    }
+    years: {
+        1470: 0.03,
+        1471: 0.84,
+    }
+    """
+    ntopics = doctopics.shape[1]
+    doclens = dtm.sum(axis=1) # row sums
+    proportions = compute_proportions(doctopics, doclens)
+
+    decades = compute_topic_proportion(meta.groupby("Decade").groups, doctopics, doclens)
+    years = compute_topic_proportion(meta.groupby("Date").groups, doctopics, doclens)
+
+    docs = []
+    for i in range(ntopics):
+        record = {
+                "_id": i,
+                "proportion": proportions.loc[str(i)],
+                "decades": decades[i].to_dict(),
+                "years": years[i].to_dict()
+                }
+        docs.append(record)
+    return docs
 
 def create_topics_topterms(topicterms, nterms=100):
     """ 
@@ -45,6 +96,17 @@ def create_topics_topterms(topicterms, nterms=100):
                 "scores": list(tt[i][row][0:nterms])
                 }
         docs.append(record)
+    return docs
+
+def create_topics_coordinates(topicterms):
+    coordinates = compute_coordinates(topicterms)
+    docs = []
+
+    for i in range(coordinates.shape[0]):
+        docs.append({'_id': i,
+            'x': float(coordinates[i][0]),
+            'y': float(coordinates[i][1]),
+            })
     return docs
 
 def create_topics_doctopics (doctopics):
@@ -81,59 +143,103 @@ def create_topics_termstopics(topicterms):
         record = {
                 "_id": term,
                 "topic_scores": list(topicterms[term])
-                }
+        }
         docs.append(record)
     return docs
 
-def create_topics (meta, doctopics, dtm, topicterms):
+def make_info_record(topic, authors, keywords, locations, doctopics):
+    """ creates dictionary. topAuthors, topAuthorsScores, topLocations, 
+    topLocationsScores, topKeywords, topKeywordsScores """
+    a = authors[topic].sort_values(ascending=False).head(10)
+    k = keywords[topic].sort_values(ascending=False).head(10)
+    l = locations[topic].sort_values(ascending=False).head(10)
+    d = doctopics[str(topic)].sort_values(ascending=False).head(10)
+
+    record = {
+            "_id": topic,
+            "topAuthors": list(a.index),
+            "topAuthorsScores": a.tolist(),
+            "topKeywords": list(k.index),
+            "topKeywordsScores": k.tolist(),
+            "topLocations": list(l.index),
+            "topLocationsScores": l.tolist(),
+            "topDocs": list(d.index),
+            "topDocsScores": d.tolist(),
+            }
+    return record
+
+def create_topics_info (meta, doctopics, dtm):
     """
     Create topics data for mongo table
 
-    Create topics
-    _id: 0,
-    proportion: 0.0294,
-    x: -0.13,
-    y: 0.115,
-    authors: [...],
-    locations: [...],
-    keywords: [...],
-    dates: [...],
-    topDocs: [1, 5, 345, 657, 34503]
+    Create topics.info
 
-    returns list of dicts
+     _id: 0,
+     topAuthors: [...],
+     topLocations: [...],
+     topKeywords: [...],
+     topDocs: [1, 5, 345, 657, 34503]
+
+    returns list of dicts one dict per topic
     """
 
-    doc_lens = dtm.sum(axis=1) # row sums
+    ntopics = doctopics.shape[1]
+    doclens = dtm.sum(axis=1) # row sums
 
-    proportions = compute_proportions(doctopics, doc_lens)
-    coordinates = compute_coordinates(topicterms)
-    topdocs = compute_top_docs(doctopics)
-
-    meta["Date"] = meta["Date"].astype('str')
-    meta["Date"] = meta["Date"].apply(lambda x: x.split('.')[0])
-    subsets = subset_proportions(meta, doctopics, doc_lens)
-    authors = subsets[0]
-    locations = subsets[1]
-    keywords = subsets[2]
-    dates = subsets[3]
-
-    # foreach topic
+    # full
+    topAuthors = compute_topic_proportion(list_group_by(meta["Author"]),
+                                          doctopics, doclens)
+    topKeywords = compute_topic_proportion(list_group_by(meta["Keywords"]),
+                                          doctopics, doclens)
+    topLocations = compute_topic_proportion(meta.groupby("Location").groups,
+                                          doctopics, doclens)
     docs = []
-    for i in range(doctopics.shape[1]):
-        docs.append({'_id': i,
-            'proportion': float(proportions[i]),
-            'x': float(coordinates[i][0]),
-            'y': float(coordinates[i][1]),
-            'topAuthors':  list(
-                authors[i].sort_values(ascending=False)[0:10].index),
-            'topLocations': list(
-                locations[i].sort_values(ascending=False)[0:10].index),
-            'topKeywords': list(
-                keywords[i].sort_values(ascending=False)[0:10].index),
-            'years': dates[i].to_dict(),
-            'topDocs': [int(d) for d in topdocs[0:10, i]]})
+    for i in range(ntopics):
+        record = make_info_record(
+                i, topAuthors, topKeywords, topLocations, doctopics)
+        docs.append(record)
     return docs
 
+def create_topics_decades_info(meta, doctopics, dtm):
+    """ returns list of dictionaries """
+    # _id: 1470
+    # topics: {
+    #     0: {
+    #     topAuthors: [ ],
+    #     topLocations: [ ],
+    #     topKeywords: [ ],
+    #     },
+    #    1: {
+    #      ... }
+    # }
+
+    doclens = dtm.sum(axis=1)
+    ntopics = doctopics.shape[1]
+     
+    decades_dict = []
+    decades_inds = meta.groupby("Decade").groups
+
+    docs = []
+    for d,inds in decades_inds.items():
+        topics = {}
+        d_meta = meta.loc[inds]
+        d_doctopics = doctopics.loc[inds]
+        d_doclens = doclens.loc[inds]
+
+        tda = compute_topic_proportion(list_group_by(d_meta["Author"]), d_doctopics, d_doclens)
+        tdk = compute_topic_proportion(list_group_by(d_meta["Keywords"]), d_doctopics, d_doclens)
+        tdl = compute_topic_proportion(d_meta.groupby("Location").groups, d_doctopics, d_doclens)
+
+        for i in range(ntopics):
+            topics[str(i)] = make_info_record(i, tda, tdk, tdl, doctopics)
+            del topics[str(i)]["_id"]
+        record = {
+                "_id": d,
+                "topics": topics
+                }
+        docs.append(record)
+                                            
+    return docs
 
 def compute_proportions(doctopics, doc_lens):
     """ Compute corpus wide topic proportions """
@@ -158,13 +264,7 @@ def compute_coordinates(topicterms):
     return MDS(n_components=2, 
             dissimilarity = "precomputed").fit_transform(dists)
 
-def compute_top_docs(doctopics):
-    """ returns ndarray rows are topic values are doc ids """
-    dt = np.array(doctopics)
-    topdocs = dt.argsort(axis=0)[::-1]
-    return topdocs
-
-def compute_topic_proportion (group_indices, doctopics, doc_lens):
+def compute_topic_proportion (group_indices, doctopics, doc_lens, mincount = 3):
     """
     For the given group indices, compute proportion for each 
     unique entry in the subset (e.g if subset = author, then each entry
@@ -173,6 +273,14 @@ def compute_topic_proportion (group_indices, doctopics, doc_lens):
     returns pandas dataframe, rows are unique values, columns are topics,
     values are mean nonzero proportion
     """
+
+    # remove indices if less than 'mincount' documents associated
+    toremove = []
+    for k,v in group_indices.items():
+        if len(v) < mincount: toremove.append(k)
+    for k in toremove:
+        del group_indices[k]
+
     names = list(group_indices.keys())
     res = np.zeros((len(names), doctopics.shape[1]))
 
@@ -184,23 +292,3 @@ def compute_topic_proportion (group_indices, doctopics, doc_lens):
         i += 1
 
     return pd.DataFrame(res, index=names)
-
-def subset_proportions(meta, doctopics, doc_lens):
-    """  
-    for each metadata grouping (e.g London, 'John Donne etc) 
-    compute topic prorportions
-
-    return list of dataframes
-    """
-    # get inds for each unique value
-    authors_inds = list_group_by(meta["Author"])
-    locations_inds = meta.groupby("Location").groups
-    keywords_inds = list_group_by(meta["Keywords"])
-    dates_inds = meta.groupby("Date").groups
-
-    # compute mean nonzero proportion foreach subset
-    authors = compute_topic_proportion(authors_inds, doctopics, doc_lens)
-    locations = compute_topic_proportion(locations_inds, doctopics, doc_lens)
-    keywords = compute_topic_proportion(keywords_inds, doctopics, doc_lens)
-    dates = compute_topic_proportion(dates_inds, doctopics, doc_lens)
-    return [authors, locations, keywords, dates]
