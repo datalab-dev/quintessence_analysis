@@ -33,6 +33,7 @@ def sentence_tokenize(text):
 def list_group_by(series):
     """ behaves like df.groupby("Date").indices but works on list """
     values = series.explode()
+    values = values.dropna() # default group by behavior, want to mimic here!
     inds = {}
     for index,k in values.items():
         if k in inds.keys(): inds[k].append(index)
