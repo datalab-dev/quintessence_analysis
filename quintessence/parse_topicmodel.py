@@ -258,7 +258,8 @@ def create_topics_toptermsrelevances(topicterms, dtm, doctopics):
 
     # add smoothing to topicterms
     # default in mallet is 0.01
-    tt = topicterms + 0.01
+    # https://stackoverflow.com/a/44591188
+    tt = topicterms + (0.01 / topicterms.shape[1])
     tt = tt.div(tt.sum(axis=1), axis=0)
 
     # topic freq
