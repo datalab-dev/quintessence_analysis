@@ -255,8 +255,6 @@ def create_topics_toptermsrelevances(topicterms, dtm, doctopics):
       where lift(term, topic) = P(term|topic) / P(term).
 
     """
-    #  term count / total count 
-    p_term = dtm.sum(axis=0) / dtm.sum().sum()
 
     # add smoothing to topicterms
     # default in mallet is 0.01
@@ -270,18 +268,20 @@ def create_topics_toptermsrelevances(topicterms, dtm, doctopics):
     # topic proportion
     proportion  = compute_proportions(doctopics, dtm.sum(axis=1))
 
-
     # term topic freq (an estimate, could use model.wordstopics but its not the same... better would be an average over iterations after stable)
     term_topic_freq = tt.multiply(topic_freq.values, axis=0)
 
     # term freq
     # note its NOT: tf = dtm.sum(axis=0) because won't match; same workaround as ldavis uses in source code...
     tf = term_topic_freq.sum(axis=0)
+
+    #  term count / total count 
+    p_term = tf / tf.sum()
  
     docs = []
     for topic in range(topicterms.shape[0]):
         topic_term_ranks = {}
-        p_term_topic = tt.loc[0]
+        p_term_topic = tt.loc[topic]
         lift = np.divide(p_term_topic, p_term)
 
         for step,lam in enumerate(np.arange(0, 1.1, step=0.1)):
