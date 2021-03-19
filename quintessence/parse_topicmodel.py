@@ -32,8 +32,13 @@ def create_topicmodel_datamodel(doctopics, topicterms, meta, dtm):
     print("topics.coordinates")
     collections["topics.coordinates"] = create_topics_coordinates(topicterms)
 
+    # topics.toprelevance terms
     print("topics.toprelevanceterms")
     collections["topics.toprelevanceterms"] = create_topics_toptermsrelevances(topicterms, dtm, doctopics)
+
+    # topics.termstopicsdist terms
+    print("topics.termstopicsdist")
+    collections["topics.termstopicsdist"] = create_topics_terms_conditional_distribution(topicterms, doctopics, dtm)
 
     # topics.topterms
     print("topics.topterms")
@@ -243,6 +248,33 @@ def create_topics_decades_info(meta, doctopics, dtm):
         docs.append(record)
                                             
     return docs
+
+def create_topics_terms_conditional_distribution(topicterms, doctopics, dtm):
+    # add smoothing to topicterms
+    # default in mallet is 0.01
+    # https://stackoverflow.com/a/44591188
+    tt = topicterms + (0.01 / topicterms.shape[1])
+    tt = tt.div(tt.sum(axis=1), axis=0)
+
+    # topic freq
+    topic_freq = doctopics.multiply(dtm.sum(axis=1), axis=0).sum(axis=0)
+    topic_freq.index = topic_freq.index.astype(int)
+
+    # term topic freq (an estimate, could use model.wordstopics but its not the same... better would be an average over iterations after stable)
+    term_topic_freq = tt.multiply(topic_freq.values, axis=0)
+
+    # for each term
+    docs = []
+    for term in term_topic_freq:
+        topic_dist = term_topic_freq[term]
+        topic_dist = topic_dist / topic_dist.sum()
+        record = {
+                "_id": term,
+                "topic_dist": topic_dist.to_list(),
+                }
+        docs.append(record)
+    return docs
+
 
 def create_topics_toptermsrelevances(topicterms, dtm, doctopics):
     """ 
