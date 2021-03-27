@@ -1,3 +1,5 @@
+import re
+
 import pandas as pd
 import numpy as np
 from scipy.spatial.distance import jensenshannon
@@ -5,6 +7,7 @@ from sklearn.manifold import MDS
 
 from quintessence.nlp import list_group_by
 
+PUNCT_RE = r'[\[\]|!"#$%&\'()*+,./:;<=>?@\^_`{|}~]'
 
 def create_topicmodel_datamodel(doctopics, topicterms, meta, dtm):
 
@@ -14,15 +17,55 @@ def create_topicmodel_datamodel(doctopics, topicterms, meta, dtm):
     meta["Date"] = meta["Date"].apply(lambda x: x.split('.')[0])
     meta["Decade"] = meta["Date"].apply(lambda x: x[0:3] + "0")
 
+    keywords = meta["Keywords"]
+    keywords = keywords.explode()
+    keywords = keywords.dropna()
+    keywords = keywords.apply(lambda x: x.lower())
+    keywords = keywords.apply(lambda x: x.lower())
+    keywords = keywords.apply(lambda x: re.sub(PUNCT_RE, '', x))
+    keywords = keywords.dropna()
+    keywords = keywords.to_frame()
+    keywords['Keywords'].replace('', np.nan, inplace=True)
+    keywords = keywords.dropna()
+    keywords = keywords.groupby("Keywords").filter(lambda x: len(x) > 2) # only keep keywords associated with 3+ documents
+
+    authors = meta["Author"]
+    authors = authors.explode()
+    authors = authors.dropna()
+    authors = authors.apply(lambda x: x.lower())
+    authors = authors.apply(lambda x: x.lower())
+    authors = authors.apply(lambda x: re.sub(PUNCT_RE, '', x))
+    authors = authors.dropna()
+    authors = authors.to_frame()
+    authors['Author'].replace('', np.nan, inplace=True)
+    authors = authors.dropna()
+
+    locations = meta["Location"]
+    locations = locations.dropna()
+    locations = locations.to_frame()
+
     collections = {}
+
+    # remember to create index later on meta field!
+    # topics.keywords
+    print("topics.keywords")
+    collections["topics.keywords"] = create_meta_records(keywords)
+
+    # topics.authors
+    print("topics.authors")
+    collections["topics.authors"] = create_meta_records(authors)
+
+    # topics.locations
+    print("topics.locations")
+    collections["topics.locations"] = create_meta_records(locations)
 
     # topics.info
     print("topics.info")
-    collections["topics.info"] = create_topics_info(meta, doctopics, dtm)
+    collections["topics.info"] = create_topics_info(authors, keywords, locations, doctopics, dtm)
 
     # topics.decades
     print("topics.decades")
-    collections["topics.decades"] = create_topics_decades_info(meta, doctopics, dtm)
+    collections["topics.decades"] = create_topics_decades_info(authors, keywords, locations, meta, doctopics, dtm)
 
     # topics.proportions
     print("topics.proportions")
@@ -53,6 +96,25 @@ def create_topicmodel_datamodel(doctopics, topicterms, meta, dtm):
     collections["topics.termstopics"] = create_topics_termstopics(topicterms)
 
     return collections
+
+def create_meta_records(metadf):
+    """
+    _id: 0,
+    docId: 1
+    Location: "london"
+    """
+    t = metadf.columns[0]
+    records = metadf.to_records("index")
+
+    docs = []
+    for i,r in enumerate(records):
+        record = {
+                "_id": i,
+                "docId": int(r[0]),
+                t: r[1]
+                }
+        docs.append(record)
+    return docs
 
 def create_topics_proportions(doctopics, dtm, meta):
     """ 
@@ -176,7 +238,7 @@ def make_info_record(topic, authors, keywords, locations, doctopics):
             }
     return record
 
-def create_topics_info (meta, doctopics, dtm):
+def create_topics_info (authors, keywords, locations, doctopics, dtm):
     """
     Create topics data for mongo table
 
@@ -195,11 +257,11 @@ def create_topics_info (meta, doctopics, dtm):
     doclens = dtm.sum(axis=1) # row sums
 
     # full
-    topAuthors = compute_topic_proportion(list_group_by(meta["Author"]),
+    topAuthors = compute_topic_proportion(authors.groupby("Author").groups,
                                           doctopics, doclens)
-    topKeywords = compute_topic_proportion(list_group_by(meta["Keywords"]),
+    topKeywords = compute_topic_proportion(keywords.groupby("Keywords").groups,
                                           doctopics, doclens)
-    topLocations = compute_topic_proportion(meta.groupby("Location").groups,
+    topLocations = compute_topic_proportion(locations.groupby("Location").groups,
                                           doctopics, doclens)
     docs = []
     for i in range(ntopics):
@@ -208,7 +270,7 @@ def create_topics_info (meta, doctopics, dtm):
         docs.append(record)
     return docs
 
-def create_topics_decades_info(meta, doctopics, dtm):
+def create_topics_decades_info(authors, keywords, locations, meta, doctopics, dtm):
     """ returns list of dictionaries """
     # _id: 1470
     # topics: {
@@ -230,13 +292,20 @@ def create_topics_decades_info(meta, doctopics, dtm):
     docs = []
     for d,inds in decades_inds.items():
         topics = {}
-        d_meta = meta.loc[inds]
         d_doctopics = doctopics.loc[inds]
         d_doclens = doclens.loc[inds]
 
-        tda = compute_topic_proportion(list_group_by(d_meta["Author"]), d_doctopics, d_doclens)
-        tdk = compute_topic_proportion(list_group_by(d_meta["Keywords"]), d_doctopics, d_doclens)
-        tdl = compute_topic_proportion(d_meta.groupby("Location").groups, d_doctopics, d_doclens)
+        # i hate this
+        ainds = [i for i in inds if i in authors.index]
+        kinds = [i for i in inds if i in keywords.index]
+        linds = [i for i in inds if i in locations.index]
+        d_authors = authors.loc[ainds]
+        d_keywords = keywords.loc[kinds]
+        d_locations = locations.loc[linds]
+
+        tda = compute_topic_proportion(d_authors.groupby("Author").groups, d_doctopics, d_doclens)
+        tdk = compute_topic_proportion(d_keywords.groupby("Keywords").groups, d_doctopics, d_doclens)
+        tdl = compute_topic_proportion(d_locations.groupby("Location").groups, d_doctopics, d_doclens)
 
         for i in range(ntopics):
             topics[str(i)] = make_info_record(i, tda, tdk, tdl, doctopics)
@@ -360,7 +429,7 @@ def compute_coordinates(topicterms):
     return MDS(n_components=2, 
             dissimilarity = "precomputed").fit_transform(dists)
 
-def compute_topic_proportion (group_indices, doctopics, doc_lens, mincount = 3):
+def compute_topic_proportion (group_indices, doctopics, doc_lens):
     """
     For the given group indices, compute proportion for each 
     unique entry in the subset (e.g if subset = author, then each entry
@@ -369,14 +438,6 @@ def compute_topic_proportion (group_indices, doctopics, doc_lens, mincount = 3):
     returns pandas dataframe, rows are unique values, columns are topics,
     values are mean nonzero proportion
     """
-
-    # remove indices if less than 'mincount' documents associated
-    toremove = []
-    for k,v in group_indices.items():
-        if len(v) < mincount: toremove.append(k)
-    for k in toremove:
-        del group_indices[k]
-
     names = list(group_indices.keys())
     res = np.zeros((len(names), doctopics.shape[1]))
 
