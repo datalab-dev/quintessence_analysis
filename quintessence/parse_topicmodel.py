@@ -444,7 +444,7 @@ def compute_topic_proportion (group_indices, doctopics, doc_lens):
     i = 0
     for n,indices in group_indices.items():
         dt = doctopics.loc[indices]
-        dl = doc_lens[indices]
+        dl = doc_lens.loc[indices]
         res[i] = compute_proportions(dt, dl)
         i += 1
 
