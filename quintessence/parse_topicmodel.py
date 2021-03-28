@@ -191,9 +191,10 @@ def create_topics_doctopics (doctopics):
     """
     docs = []
     for r in doctopics.to_records():
+        r = list(r)
         record = {
                 "_id": r[0],
-                "topic_distribution": [t.item() for t in r[1]] # convert numpy int64 to int
+                "topic_distribution": [t.item() for t in r[1:]] # convert numpy int64 to int
                 }
         docs.append(record)
     return docs
