@@ -190,10 +190,10 @@ def create_topics_doctopics (doctopics):
     returns list of dicts
     """
     docs = []
-    for i,topics in enumerate(doctopics.to_records(index=False)):
+    for r in doctopics.to_records():
         record = {
-                "_id": i,
-                "topic_distribution": [t.item() for t in topics] # convert numpy int64 to int
+                "_id": r[0],
+                "topic_distribution": [t.item() for t in r[1]] # convert numpy int64 to int
                 }
         docs.append(record)
     return docs
